@@ -267,7 +267,21 @@ if (require.main === module) {
   return app;
 }
 
-main().catch(err => {
+
+const appPromise = main();
+
+appPromise.catch(err => {
   console.error('Could not start:', err.message);
-  process.exit(1);
 });
+
+module.exports = async (req, res) => {
+  try {
+    const app = await appPromise;
+    return app(req, res);
+  } catch (err) {
+    console.error('App initialization failed:', err.message);
+    if (!res.headersSent) {
+      return res.status(500).send('Application initialization failed.');
+    }
+  }
+};
