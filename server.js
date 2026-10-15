@@ -153,7 +153,7 @@ async function main() {
         if (err) return next(err);
         req.session.authed = true;
         req.session.at = Date.now();
-        req.session.save(e => (e ? next(e) : res.redirect('/')));
+        req.session.save(e => (e ? next(e) : res.redirect(303, '/')));
       });
     } catch (e) { next(e); }
   });
