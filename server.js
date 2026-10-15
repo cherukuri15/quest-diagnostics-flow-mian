@@ -9,14 +9,12 @@ const express = require('express');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const { MongoClient } = require('mongodb');
-const bcrypt = require('bcryptjs');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
 // ---------------------------------------------------------------- settings from .env
 const env = process.env;
-const missing = ['MONGODB_URI', 'SESSION_SECRET', 'APP_USERNAME'].filter(k => !env[k]);
-if (!env.APP_PASSWORD_HASH && !env.APP_PASSWORD) missing.push('APP_PASSWORD_HASH (or APP_PASSWORD)');
+const missing = ['MONGODB_URI', 'SESSION_SECRET'].filter(k => !env[k]);
 if (missing.length) {
   console.error(`Missing settings in .env: ${missing.join(', ')}. Copy .env.example to .env and fill them in.`);
   process.exit(1);
@@ -32,6 +30,10 @@ const DB_NAME = env.MONGODB_DB || 'quest_flow_review';
 const SESSION_HOURS = Number(env.SESSION_HOURS) || 12;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
+// Shared login (hardcoded)
+const APP_USERNAME = 'quest-review';
+const APP_PASSWORD = 'Questflowreview2026';
+
 // ---------------------------------------------------------------- helpers
 function safeEqual(a, b) {
   const ha = crypto.createHash('sha256').update(String(a)).digest();
@@ -40,8 +42,7 @@ function safeEqual(a, b) {
 }
 
 async function passwordMatches(password) {
-  if (env.APP_PASSWORD_HASH) return bcrypt.compare(String(password), env.APP_PASSWORD_HASH);
-  return safeEqual(password, env.APP_PASSWORD);
+  return safeEqual(password, APP_PASSWORD);
 }
 
 function cleanText(value, max) {
@@ -148,7 +149,7 @@ async function main() {
   app.post('/login', loginLimiter, async (req, res, next) => {
     try {
       const { username = '', password = '' } = req.body || {};
-      const userOk = safeEqual(String(username).trim(), env.APP_USERNAME);
+      const userOk = safeEqual(String(username).trim(), APP_USERNAME);
       const passOk = await passwordMatches(password);
       if (!userOk || !passOk) {
         req.loginFailed = true;
@@ -273,15 +274,24 @@ if (require.main === module) {
 }
 
 
-const appPromise = main();
-
-appPromise.catch(err => {
-  console.error('Could not start:', err.message);
-});
+// Start once per instance; if start-up fails, forget it so the next request retries
+// instead of the instance failing every request until it is recycled.
+let appPromise = null;
+function getApp() {
+  if (!appPromise) {
+    appPromise = main().catch(err => {
+      console.error('Could not start:', err.message);
+      appPromise = null;
+      throw err;
+    });
+  }
+  return appPromise;
+}
+getApp().catch(() => {});
 
 module.exports = async (req, res) => {
   try {
-    const app = await appPromise;
+    const app = await getApp();
     return app(req, res);
   } catch (err) {
     console.error('App initialization failed:', err.message);
