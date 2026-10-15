@@ -84,7 +84,7 @@ async function main() {
 
   const app = express();
   app.disable('x-powered-by');
-  if (env.TRUST_PROXY === '1' || IS_PROD) app.set('trust proxy', 1);
+  if (env.VERCEL === '1' || env.TRUST_PROXY === '1' || IS_PROD) app.set('trust proxy', 1);
 
   app.use(helmet({
     contentSecurityPolicy: {
@@ -133,6 +133,8 @@ async function main() {
   const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 10,
+    skipSuccessfulRequests: true,
+    requestWasSuccessful: req => !req.loginFailed,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     handler: (req, res) => res.redirect('/login?error=locked'),
@@ -148,7 +150,10 @@ async function main() {
       const { username = '', password = '' } = req.body || {};
       const userOk = safeEqual(String(username).trim(), env.APP_USERNAME);
       const passOk = await passwordMatches(password);
-      if (!userOk || !passOk) return res.redirect('/login?error=1');
+      if (!userOk || !passOk) {
+        req.loginFailed = true;
+        return res.redirect('/login?error=1');
+      }
       req.session.regenerate(err => {
         if (err) return next(err);
         req.session.authed = true;
