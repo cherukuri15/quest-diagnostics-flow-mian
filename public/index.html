@@ -1,0 +1,852 @@
+<!doctype html><html data-theme="light" style="color-scheme:light"><head><meta name="comments-api" content="/api">
+<meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Quest × Pronix.ai — Test Results Agent Flows</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a tab per flow; each flow is one clean top-to-bottom chart at full reading size (scrolls, never shrinks text);
+   clicking a box opens its details over the chart. Colours follow the reference workflow image. */
+:root{
+  --bg:#F4F6F2; --card:#FFFFFF; --ink:#1B2418; --muted:#586253; --rule:#D8DED3; --soft:#EAEFE5; --line:#3C4637;
+  --mag:#4A7637; --mag-fill:#B9C930; --mag-soft:#EEF3DC;
+  --teal:#3B6A2C; --teal-soft:#E2EFD8; --entry:#E2EFD8; --entry-line:#7FAA68;
+  --dec:#2D4D21; --dec-ink:#FFFFFF;
+  --sys:#ECEFEA; --sys-line:#8A9285;
+  --purple:#4A7637; --purple-soft:#EAF2E3;
+  --esc:#B8440F; --esc-fill:#FCE6D8; --gold:#4A7637; --gold-soft:#EEF3DC; --gold-ink:#FFFFFF; --hub:#A9CC94;
+  --code:#F6F8F3;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5}
+[hidden]{display:none!important}
+.wrap{max-width:1400px;margin:0 auto;padding-inline:20px;padding-block:18px 40px;display:flex;flex-direction:column;gap:14px}
+header.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.eyebrow{font:700 11.5px var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--mag);margin:0}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(22px,3vw,30px);line-height:1.1;margin:2px 0 0;text-wrap:balance}
+.ver{margin:4px 0 0;color:var(--muted);font-size:14px}
+.zoom{display:flex;border:1px solid var(--rule);border-radius:10px;overflow:hidden;background:var(--card)}
+.zoom button{appearance:none;border:0;background:none;color:var(--ink);font:600 14px var(--f-body);padding:7px 12px;cursor:pointer;min-width:40px}
+.zoom button+button{border-left:1px solid var(--rule)} .zoom button:hover{background:var(--soft)}
+nav.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--rule)}
+.tab{appearance:none;border:0;background:none;color:var(--muted);cursor:pointer;padding:10px 14px 12px;border-bottom:3px solid transparent;text-align:left;white-space:nowrap;font:inherit}
+.tab b{display:block;font:700 12px var(--f-display);letter-spacing:.08em;color:var(--mag)}
+.tab span{font-weight:600;font-size:15.5px}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--mag)}
+.tab:hover{color:var(--ink)}
+.intro{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}
+.intro p{margin:0;color:var(--muted);max-width:75ch}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:18px;height:12px;border-radius:3px;display:inline-block;border:1px solid transparent}
+.board{background:var(--card);border:1px solid var(--rule);border-radius:16px;overflow:auto;padding:24px;min-width:0}
+.board svg{display:block;margin:0 auto}
+.node{cursor:pointer}
+.node text{font-family:var(--f-body);pointer-events:none}
+.node:hover .shape,.node:focus-visible .shape{stroke-width:3}
+.node:focus{outline:none}
+.node:focus-visible .shape{stroke:var(--purple)}
+.edge path{fill:none;stroke:var(--line);stroke-width:1.6}
+.edge.esc path{stroke:var(--esc);stroke-dasharray:6 4}
+.edge text{font-family:var(--f-body);font-size:13.5px;font-weight:600;fill:var(--ink)}
+.edge rect{fill:var(--card)}
+.edge.esc text{fill:var(--esc)}
+.dimmed .edge:not(.hot){opacity:.25} .dimmed .node:not(.hot){opacity:.45}
+.edge.hot path{stroke-width:3}
+.flash .shape{animation:flash 1.2s ease 2}
+@keyframes flash{50%{stroke:var(--purple);stroke-width:5}}
+.fine{font-size:13px;color:var(--muted);margin:0;max-width:90ch}
+/* details sheet */
+.scrim{position:fixed;inset:0;background:rgba(10,10,15,.45);display:flex;justify-content:flex-end;z-index:10}
+.sheet{background:var(--card);width:min(560px,100%);height:100%;overflow-y:auto;padding:22px 24px calc(28px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px;box-shadow:-10px 0 40px rgba(0,0,0,.2)}
+.sheet .x{align-self:flex-end;appearance:none;border:1px solid var(--rule);background:var(--card);color:var(--ink);border-radius:10px;padding:6px 12px;font:600 14px var(--f-body);cursor:pointer}
+.chip{display:inline-flex;font:700 11.5px var(--f-body);letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:999px;background:var(--soft);color:var(--muted);align-self:flex-start}
+.chip.api{background:var(--purple-soft);color:var(--purple)} .chip.esc{background:var(--esc-fill);color:var(--esc)}
+.sheet h2{font-family:var(--f-display);font-weight:700;font-size:26px;line-height:1.15;margin:0;text-wrap:balance}
+.say{border-left:4px solid var(--mag);padding-left:14px}
+.say small{display:block;font:700 11.5px var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.say q{quotes:none;font-size:18px;line-height:1.45}
+.rule{background:var(--soft);border-radius:12px;padding:12px 14px}
+.inferred{font-size:14px;color:var(--muted);border:1px dashed var(--rule);border-radius:10px;padding:8px 12px}
+.sheet h3{font:700 12px var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:6px 0 -4px}
+ul.leads{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+ul.leads li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:8px 10px;border:1px solid var(--rule);border-radius:10px}
+ul.leads li.esc{border-color:var(--esc)}
+ul.leads .to{color:var(--muted);font-size:14px;text-align:right}
+ul.leads li.esc .to{color:var(--esc);font-weight:600}
+.api{border:1px solid var(--rule);border-radius:12px;overflow:hidden}
+.api .bar{display:flex;gap:4px;background:var(--purple-soft);padding:6px;align-items:center}
+.api .bar .sp{flex:1}
+.tabbtn{appearance:none;border:0;background:none;color:var(--purple);font:600 14px var(--f-body);padding:6px 12px;border-radius:8px;cursor:pointer}
+.tabbtn[aria-selected="true"]{background:var(--card);color:var(--ink)}
+.copy{appearance:none;border:1px solid var(--rule);background:var(--card);color:var(--ink);border-radius:8px;padding:5px 10px;font:600 13px var(--f-body);cursor:pointer}
+.api .method{font:600 13.5px var(--f-mono);padding:10px 14px 0;color:var(--purple);overflow-wrap:anywhere}
+.api pre{margin:0;padding:10px 14px 14px;font:13.5px/1.5 var(--f-mono);overflow-x:auto;background:var(--code);color:var(--ink)}
+:focus-visible{outline:3px solid var(--purple);outline-offset:2px}
+.editbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn2{appearance:none;border:1px solid var(--rule);background:var(--card);color:var(--ink);border-radius:10px;padding:7px 14px;font:600 14px var(--f-body);cursor:pointer}
+.btn2:hover{border-color:var(--ink)} .btn2.primary{background:var(--purple);border-color:var(--purple);color:var(--card)} .btn2.danger{color:var(--esc)}
+.btn2:disabled{opacity:.45;cursor:default}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld label{font:700 12px var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.topctl{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.modebtn{appearance:none;display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--purple);background:var(--card);color:var(--purple);border-radius:999px;padding:8px 16px;font:700 14.5px var(--f-body);cursor:pointer}
+.modebtn .dot{width:10px;height:10px;border-radius:50%;border:2px solid var(--purple)}
+.modebtn[aria-pressed="true"]{background:var(--purple);color:var(--card)} .modebtn[aria-pressed="true"] .dot{background:var(--card);border-color:var(--card)}
+.modebtn:disabled{opacity:.5;cursor:default}
+.editbar2{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--purple-soft);border:1px solid var(--purple);border-radius:12px;padding:10px 14px}
+.editbar2 .tips{font-size:14.5px;max-width:80ch} .editbar2 .acts{display:flex;gap:8px;flex-wrap:wrap}
+body.editing .board{background-color:var(--card);background-image:radial-gradient(var(--rule) 1px, transparent 1px);background-size:20px 20px}
+body.editing .node{cursor:grab} body.editing .node.dragging{cursor:grabbing;opacity:.85}
+body.editing .edge text{cursor:text}
+.inl{position:fixed;z-index:30;font:700 16px/1.3 var(--f-body);color:var(--ink);background:var(--card);border:2px solid var(--purple);border-radius:10px;padding:6px 8px;box-shadow:0 8px 24px rgba(0,0,0,.18);resize:none;text-align:center}
+.fld select{font:15px var(--f-body);color:var(--ink);background:var(--card);border:1.5px solid var(--rule);border-radius:10px;padding:8px 10px;width:100%}
+.chrow .rowbar{display:flex;gap:8px;align-items:flex-end}
+.chrow .rowbar .fld{flex:1;min-width:0}
+.iconbtn{appearance:none;border:1px solid var(--rule);background:var(--card);color:var(--esc);border-radius:8px;width:38px;height:40px;cursor:pointer;font:700 16px var(--f-body);flex:none}
+.chlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.chlist li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;border:1px solid var(--rule);border-radius:10px;padding:8px 10px}
+.chlist small{display:block;color:var(--muted)}
+.apicard textarea.jsonedit{width:100%;min-height:200px;font:13.5px/1.5 var(--f-mono);color:var(--ink);background:var(--code);border:0;border-top:1px solid var(--rule);padding:10px 14px;resize:vertical}
+.apicard input.methodedit{width:calc(100% - 28px);margin:8px 14px 0;font:600 13.5px var(--f-mono);color:var(--purple);background:var(--card);border:1.5px solid var(--rule);border-radius:8px;padding:6px 8px}
+.fld input,.fld textarea{font:16px/1.45 var(--f-body);color:var(--ink);background:var(--card);border:1.5px solid var(--rule);border-radius:10px;padding:9px 11px;width:100%;resize:vertical}
+.fld textarea.mono{font:13.5px/1.5 var(--f-mono);min-height:180px}
+.fld input:focus,.fld textarea:focus{border-color:var(--purple);outline:none;box-shadow:0 0 0 3px var(--purple-soft)}
+.fld .hint{font-size:13px;color:var(--muted)} .fld .err{font-size:13px;color:var(--esc)}
+.chgrid{display:flex;flex-direction:column;gap:10px}
+.chrow{border:1px solid var(--rule);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.chrow.esc{border-color:var(--esc)} .chrow .to{font-size:13px;color:var(--muted)}
+.edited{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--purple);background:var(--purple-soft);border-radius:999px;padding:3px 10px;align-self:flex-start}
+.status{font-size:13.5px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.status b{color:var(--ink)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--card);padding:10px 16px;border-radius:10px;font:600 14px var(--f-body);z-index:20}
+.apis{display:flex;flex-direction:column;gap:12px}
+.apis-head h2{font-family:var(--f-display);font-weight:700;font-size:22px;margin:0}
+.apis-head p{margin:2px 0 0;color:var(--muted);max-width:80ch}
+.apilist{display:flex;flex-direction:column;gap:14px}
+.apicard{background:var(--card);border:1px solid var(--rule);border-left:4px solid var(--purple);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:12px;min-width:0;scroll-margin-top:16px}
+.apicard.flash{box-shadow:0 0 0 3px var(--purple)}
+.apicard header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.apicard .num{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--purple);color:var(--card);font:700 15px var(--f-display)}
+.apicard h3{margin:0;font:700 18px var(--f-display)}
+.apicard .by{color:var(--muted);font-size:14px}
+.apicard .what{margin:0;font-size:15px;color:var(--ink);max-width:95ch}
+.rr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+.rr .api{min-width:0}
+.rr .api .bar .lbl{font:700 12px var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--purple);padding:0 8px}
+.rr pre{max-height:420px}
+@media (max-width: 860px){ .rr{grid-template-columns:1fr} }
+@media (max-width: 700px){ .board{padding:12px} .sheet{padding:18px 16px 28px} }
+@media (prefers-reduced-motion: reduce){.flash .shape{animation:none}}
+.brandbar{height:6px;background:linear-gradient(90deg,var(--mag) 0 78%,var(--mag-fill) 78% 100%)}
+.cobrand{display:flex;align-items:center;gap:12px;margin:0 0 8px;font-family:var(--f-display)}
+.cobrand .qlogo{height:44px;width:auto;display:block}
+.cobrand .sep{width:1px;height:30px;background:var(--rule)}
+.cobrand .q{font-weight:800;font-size:19px;color:var(--mag)}
+.cobrand .x{font-weight:600;font-size:16px;color:var(--muted)}
+.cobrand .px{font-weight:700;font-size:17px;color:var(--ink)}
+h1{text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--mag-fill) 70%,transparent);text-decoration-thickness:4px;text-underline-offset:10px;text-decoration-skip-ink:none;padding-bottom:6px}
+footer.brand{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;border-top:1px solid var(--rule);padding-top:12px;font-size:13px;color:var(--muted)}
+footer.brand b{color:var(--mag)}
+.cmbtn{appearance:none;border:1px solid var(--mag);background:var(--mag);color:#fff;border-radius:999px;padding:7px 14px;font:700 14px var(--f-body);cursor:pointer;display:inline-flex;gap:8px;align-items:center}
+.cmbtn .n{background:#fff;color:var(--mag);border-radius:999px;min-width:22px;padding:0 6px;font-size:12.5px;line-height:20px;text-align:center}
+.cm{display:flex;flex-direction:column;gap:10px}
+.cm-head{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap}
+.cm-head h3{margin:0}
+.cm-card{border:1px solid var(--rule);border-left:4px solid var(--mag);border-radius:10px;padding:10px 12px;background:var(--card);display:flex;flex-direction:column;gap:4px}
+.cm-card.res{border-left-color:var(--sys-line);opacity:.72}
+.cm-meta{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.cm-meta b{color:var(--ink);font-size:14.5px}
+.cm-text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px}
+.cm-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+.cm-acts button,.cm-go{appearance:none;border:0;background:none;color:var(--mag);font:600 13px var(--f-body);padding:2px 0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.cm-acts button.del{color:var(--esc)}
+.cm-step{font:600 13px var(--f-body);color:var(--ink);background:var(--mag-soft);border-radius:8px;padding:4px 8px;align-self:flex-start;cursor:pointer;border:0}
+.cm-form{border:1px solid var(--mag);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--mag-soft)}
+.cm-form label{font:700 12.5px var(--f-body);color:var(--ink)}
+.cm-form input,.cm-form textarea{font:15px var(--f-body);color:var(--ink);background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:8px 10px;width:100%}
+.cm-form textarea{min-height:84px;resize:vertical}
+.cm-form input:focus,.cm-form textarea:focus{outline:none;border-color:var(--mag);box-shadow:0 0 0 3px color-mix(in srgb,var(--mag-fill) 40%,transparent)}
+.cm-form .row{display:flex;gap:8px;justify-content:flex-end}
+.cm-add{appearance:none;border:1px dashed var(--mag);background:var(--card);color:var(--mag);border-radius:10px;padding:9px 12px;font:700 14px var(--f-body);cursor:pointer;text-align:left}
+.cm-add:hover{background:var(--mag-soft)}
+.cm-empty{color:var(--muted);font-size:14px;margin:0}
+.cm-filter{display:flex;gap:4px;border:1px solid var(--rule);border-radius:999px;padding:3px;align-self:flex-start}
+.cm-filter button{appearance:none;border:0;background:none;border-radius:999px;padding:5px 12px;font:600 13px var(--f-body);color:var(--muted);cursor:pointer}
+.cm-filter button[aria-pressed="true"]{background:var(--mag);color:#fff}
+.cm-group{display:flex;flex-direction:column;gap:8px;padding-top:6px}
+.cm-group h4{margin:6px 0 0;font:700 12px var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.cm-note{font-size:12.5px;color:var(--muted);margin:0}
+</style>
+
+<div class="brandbar" aria-hidden="true"></div>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="cobrand"><img class="qlogo" src="data:image/png;base64,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" alt="Quest Diagnostics" width="125" height="44"><span class="sep" aria-hidden="true"></span><span class="x" aria-label="and">×</span><span class="px">Pronix.ai</span></p>
+      <p class="eyebrow">Provider Services</p>
+      <h1>Test Results AI Agent — call flows</h1><p class="ver">Blueprint Session 2 · 13 Oct 2026</p>
+    </div>
+    <div class="topctl">
+      <button class="cmbtn" id="cmBtn" title="See all comments">💬 Comments <span class="n" id="cmCount">0</span></button>
+      <a class="modebtn" id="signOut" href="/logout" style="text-decoration:none">Sign out</a>
+      <button class="modebtn" id="modeBtn" aria-pressed="false"><span class="dot"></span><span id="modeTxt">Edit mode: off</span></button>
+      <div class="zoom" role="group" aria-label="Text size">
+        <button id="zo" aria-label="Smaller">A−</button><button id="z0">Fit</button><button id="zi" aria-label="Larger">A+</button>
+      </div>
+    </div>
+  </header>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Flows"></nav>
+  <div class="intro">
+    <p id="blurb"></p>
+    <div class="legend" aria-label="Legend">
+      <span><i style="background:var(--entry);border-color:var(--entry-line)"></i>Caller gives info</span>
+      <span><i style="background:var(--card);border-color:var(--line)"></i>Agent says</span>
+      <span><i style="background:var(--dec)"></i>Decision</span>
+      <span><i style="background:var(--sys);border-color:var(--purple)"></i>API call</span>
+      <span><i style="background:var(--esc-fill);border-color:var(--esc)"></i>Transfer to agent</span>
+      <span><i style="background:var(--mag-fill)"></i>Go to another flow</span>
+      
+      
+    </div>
+  </div>
+  <div class="editbar2" id="editTools" hidden>
+    <div class="tips"><b>Editing.</b> Double-click any box or arrow label to retype it · drag a box to move it · click a box to change its type, answers and arrows, add a step after it, or delete it.</div>
+    <div class="acts"><button class="btn2 primary" id="addStep">+ Add step</button><button class="btn2" id="changesBtn">Changes</button><button class="btn2" id="resetLayout">Reset layout</button></div>
+  </div>
+  <div class="status" id="status"></div>
+  <div class="board" id="board"></div>
+  <section class="apis" id="apis" aria-labelledby="apisTitle">
+    <div class="apis-head"><h2 id="apisTitle">API calls in this flow</h2><p>Sample request and response for every API box above. Numbers match the green numbered badges on the chart. Kore → MuleSoft → Salesforce; values are fictitious.</p></div>
+    <div class="apilist" id="apilist"></div>
+  </section>
+  <p class="fine">Click any box (or a lime “Go to” box to jump flows) for the full wording, the rule behind it and its comments; use 💬 Comments at the top to see every comment. Turn on Edit mode to change wording, arrows, steps and API samples; a ✎ mark on a box means it was edited. API samples for each flow are listed under its chart. Hover a box to highlight its connections. API samples are illustrative (fields to be confirmed against the Quest MuleSoft specs, values fictitious). Branches marked “inferred” are assumptions where the flow doesn’t spell them out.</p>
+  <footer class="brand"><span>Prepared for <b>Quest Diagnostics</b> by Pronix.ai</span><span>Test Results AI Agent · call-flow specification</span></footer>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+<div class="scrim" id="scrim" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shTitle"></div></div>
+
+<script id="data" type="application/json">{"flows":[{"n":1,"name":"Entry & authentication","steps":"Steps 1–2","start":"ivr"},{"n":2,"name":"Patient ID & lookup","steps":"Steps 3–4","start":"pname"},{"n":3,"name":"Result delivery","steps":"Step 5","start":"deliver_ask"},{"n":4,"name":"Wrap-up or transfer","steps":"Call close","start":"wrap"},{"n":5,"name":"Post-call","steps":"Step 6","start":"pc_summary"}],"nodes":{"ivr":{"id":"ivr","flow":1,"step":"Step 1 · Five9 IVR","kind":"system","title":"Provider’s office calls Quest","rule":"An employee at the provider’s office dials 866-697-8378. The existing Five9 IVR asks “Patient or Healthcare Provider?” — the caller picks Provider, then Results (or the main menu), or says “Test Results” to skip the menu options.","choices":[{"label":"Caller reaches the results question","to":"ivr_q","tone":"go"}],"sayer":"Five9 IVR"},"ivr_q":{"id":"ivr_q","flow":1,"step":"Step 1 · Five9 IVR","kind":"decision","title":"Ordering / Non-Ordering or Treating Physician?","say":"“Are you an Ordering or Non-Ordering/Treating Physician wanting automated results?”","rule":"Wording to be inclusive of fax and email channels. If ‘Yes’, proceed.","choices":[{"label":"Yes","to":"split","tone":"go"},{"label":"No","to":"today","tone":"neutral","note":"inferred"}],"prompt":"What does the caller answer?","inferred":"The flow only says “if Yes, proceed”. Sending “No” to today’s path is an assumption.","sayer":"Five9 IVR"},"split":{"id":"split","flow":1,"step":"Step 1 · Five9 IVR","kind":"decision","title":"Five9 staged rollout split","rule":"1% of results calls go to the Kore AI agent and 99% to today’s path (NCSS live agents). The split is controlled inside Five9 by percentage or region / ANI, and dialed up over time: 1% → 2% → 5% → 10%, then +10% steps to 100%.","choices":[{"label":"To the Kore.ai agent (1%)","to":"handoff","tone":"go"},{"label":"To today’s path (99%)","to":"today","tone":"neutral"}],"prompt":"Where does Five9 send this call?","sayer":"AI agent"},"today":{"id":"today","flow":1,"step":"Step 1 · Five9 IVR","kind":"end","title":"Today’s path — unchanged","rule":"The call goes to NCSS live agents exactly as it does today. The AI agent is not involved.","choices":[],"sayer":"AI agent"},"handoff":{"id":"handoff","flow":1,"step":"Step 1 · Five9 IVR","kind":"system","title":"Hand-off to the AI agent","rule":"The agent assumes the caller already confirmed they are a healthcare provider wanting automated results — ordering or non-ordering/treating office. IVR answers are not carried over SIP, so the agent re-establishes context; ordering vs treating is decided in Step 4 from the accession #.","choices":[{"label":"Call handled by the Kore.ai agent","to":"disc","tone":"go"}],"sayer":"Kore.ai","chg":"new"},"disc":{"id":"disc","flow":1,"step":"Step 2 · Disclaimer & authentication","kind":"say","title":"Disclaimer — spoken verbatim","say":"“Your call has routed to our Test Results AI Bot. Our Bot, which uses artificial intelligence, can assist ordering and treating physicians with obtaining test results for patients under their care. All test results should be verified by the ordering or treating provider. If the test results you are requesting are not something our Bot can help with, we will get you through to an agent. Are you okay to proceed?”","rule":"Legal-approved wording, used as is. A shorter version is to be reviewed on voice.","choices":[{"label":"Yes, okay to proceed","to":"acct","tone":"go"},{"label":"No, or asks for an agent","to":"transfer","tone":"esc","reason":"Caller asked for an agent"}],"prompt":"What does the caller answer?","inferred":"What happens on “No” isn’t stated; asking for an agent is a listed escalation trigger.","sayer":"AI agent","chg":"updated"},"acct":{"id":"acct","flow":1,"step":"Step 2 · Disclaimer & authentication","kind":"ask","title":"Quest account number","say":"“Please provide your Quest account number.”","rule":"Read back to the caller for a quick yes / no. Mostly 8 digits; Great Midwest / Southwest use 4-digit accounts, padded to 8 with leading zeros. Up to 2 retries for a mis-heard or badly captured number, then transfer to an agent.","choices":[{"label":"Caller confirms the read-back","to":"api_auth","tone":"go"},{"label":"Retry, max 2","to":"acct","tone":"neutral"},{"label":"Still failing after 2 retries","to":"transfer","tone":"esc","reason":"Retry limit reached (2 retries)"}],"prompt":"What happens?","phi":true,"sayer":"AI agent","chg":"new"},"api_auth":{"id":"api_auth","flow":1,"step":"Step 2 · Disclaimer & authentication","kind":"api","title":"Authenticate provider","rule":"Looks up the account in Salesforce using the account number and the caller’s phone number (ANI, from telephony metadata). Returns the matching account record(s) with the practice name (read back to the caller), building #, the ‘House Account’ flag, and the verified fax numbers and email addresses on file. Every tool call has a min / max timer; a timeout or API failure escalates and alerts Quest’s owner and Kore customer success.","choices":[{"label":"One matching account","to":"house","tone":"go"},{"label":"Several accounts match","to":"bldg","tone":"neutral"},{"label":"Account not found","to":"transfer","tone":"esc","reason":"Account not found"},{"label":"API down / timeout","to":"transfer","tone":"esc","reason":"API down or timed out"}],"samples":[{"kind":"Request","method":"POST /api/v1/providers/authenticate","body":"{\n  \"sessionId\": \"kore-sess-8f2c41\",\n  \"accountNumber\": \"00004528\",\n  \"accountNumberAsSpoken\": \"4528\",\n  \"callerAni\": \"+12015550143\"\n}"},{"kind":"Response","method":"200 OK","body":"{\n  \"matchCount\": 1,\n  \"accounts\": [\n    {\n      \"accountNumber\": \"00004528\",\n      \"practiceName\": \"Riverside Family Medicine\",\n      \"address\": \"200 Main St, Bldg 4, Newark, NJ 07102\",\n      \"buildingNumber\": \"4\",\n      \"isHouseAccount\": false,\n      \"faxNumbers\": [\n        {\n          \"faxId\": \"FX-01\",\n          \"last4\": \"0199\"\n        },\n        {\n          \"faxId\": \"FX-02\",\n          \"last4\": \"4410\"\n        }\n      ],\n      \"emails\": [\n        {\n          \"emailId\": \"EM-01\",\n          \"address\": \"results@riversidefm.org\"\n        }\n      ]\n    }\n  ]\n}"}],"prompt":"What does the lookup return?","sayer":"AI agent","chg":"updated"},"bldg":{"id":"bldg","flow":1,"step":"Step 2 · Disclaimer & authentication","kind":"ask","title":"Resolve by building #","say":"The agent asks for the building number on the account.","rule":"When several accounts are returned, the building # is the tiebreaker. The caller-phone (ANI) and account-phone fallbacks from v7 are removed. Up to 2 retries, then transfer to an agent.","choices":[{"label":"One account matches","to":"house","tone":"go"},{"label":"Retry, max 2","to":"bldg","tone":"neutral"},{"label":"Still unresolved after 2 retries","to":"transfer","tone":"esc","reason":"Account unresolved after building #"}],"prompt":"Does that resolve it?","sayer":"AI agent","chg":"updated"},"house":{"id":"house","flow":1,"step":"Step 2 · Disclaimer & authentication","kind":"decision","title":"‘House Account’ flag on the account?","rule":"Read from the Authenticate provider response. Covers the Salesforce flag plus the 911 / 888 / 411 naming conventions. A House Account escalates straight away.","choices":[{"label":"No","to":"cname","tone":"go"},{"label":"Yes","to":"transfer","tone":"esc","reason":"House Account"}],"prompt":"Is it a House Account?","sayer":"AI agent","chg":"new"},"cname":{"id":"cname","flow":1,"step":"Step 2 · Disclaimer & authentication","kind":"ask","title":"Caller’s first & last name","say":"“Please provide your first and last name.”","rule":"Not validated against the API — captured for the Case and the escalation summary. Read back for yes / no. Up to 2 retries, then transfer to an agent.","choices":[{"label":"Caller gives their name","to":"jobtitle","tone":"go"},{"label":"Retry, max 2","to":"cname","tone":"neutral"},{"label":"Still failing after 2 retries","to":"transfer","tone":"esc","reason":"Retry limit reached (2 retries)"}],"phi":true,"sayer":"AI agent","chg":"updated"},"jobtitle":{"id":"jobtitle","flow":1,"step":"Step 2 · Disclaimer & authentication","kind":"ask","title":"Caller’s job title","say":"“What is your job title?”","rule":"Matched against the authorized / unauthorized lists, which are static and kept in a tool so Quest can update them without a new agent release. Not validated against the API — captured for the Case and the escalation summary. Up to 2 retries for a mis-heard title, then transfer to an agent. Unauthorized examples: PSR, pharmacist, intern, fellow, executive assistant, insurance rep, social worker.","choices":[{"label":"Authorized (e.g. medical assistant, nurse, office manager)","to":"practice","tone":"go"},{"label":"Retry, max 2","to":"jobtitle","tone":"neutral"},{"label":"Unauthorized (e.g. PSR, pharmacist, intern)","to":"transfer","tone":"esc","reason":"Unauthorized or unrecognized job title"},{"label":"Unrecognized (on neither list)","to":"transfer","tone":"esc","reason":"Unauthorized or unrecognized job title"},{"label":"Still failing after 2 retries","to":"transfer","tone":"esc","reason":"Retry limit reached (2 retries)"}],"prompt":"What kind of title does the caller give?","sayer":"AI agent","chg":"new"},"practice":{"id":"practice","flow":1,"step":"Step 2 · Disclaimer & authentication","kind":"say","title":"Confirm the practice name","say":"The agent reads the practice name back from the API result and asks the caller to confirm it.","rule":"Not an exact-match input: the caller confirms the name on the account record in Salesforce.","choices":[{"label":"Confirms","to":"auth_ok","tone":"go"},{"label":"Says it’s not their practice","to":"transfer","tone":"esc","reason":"Account unresolved","note":"inferred"}],"prompt":"What does the caller answer?","inferred":"The flow doesn’t say what happens if the caller rejects the practice name; escalating is an assumption.","sayer":"AI agent","chg":"updated"},"auth_ok":{"id":"auth_ok","flow":1,"step":"Step 2 · Disclaimer & authentication","kind":"milestone","title":"Caller authenticated","rule":"The caller and the provider account are verified against the Salesforce system of record. Next: identify the patient.","choices":[{"label":"Continue to patient identification","to":"pname","tone":"go"}],"sayer":"AI agent"},"pname":{"id":"pname","flow":2,"step":"Step 3 · Patient identification","kind":"ask","title":"Patient’s first & last name","say":"“Please provide the patient’s first and last name.”","rule":"Required. Every capture is read back for a quick yes / no; a “no” re-prompts. Up to 2 retries, then transfer to an agent.","choices":[{"label":"Caller gives the name","to":"pdob","tone":"go"},{"label":"Retry, max 2","to":"pname","tone":"neutral"},{"label":"Still failing after 2 retries","to":"transfer","tone":"esc","reason":"Retry limit reached (2 retries)"}],"phi":true,"sayer":"AI agent"},"pdob":{"id":"pdob","flow":2,"step":"Step 3 · Patient identification","kind":"ask","title":"Patient’s date of birth","say":"“Please provide the patient’s date of birth.”","rule":"Required. Read back for yes / no. Up to 2 retries, then transfer to an agent.","choices":[{"label":"Caller gives the date of birth","to":"ptest","tone":"go"},{"label":"Retry, max 2","to":"pdob","tone":"neutral"},{"label":"Still failing after 2 retries","to":"transfer","tone":"esc","reason":"Retry limit reached (2 retries)"}],"phi":true,"sayer":"AI agent"},"ptest":{"id":"ptest","flow":2,"step":"Step 3 · Patient identification","kind":"ask","title":"Test(s) performed","say":"“Please provide the name of the test or tests performed.”","rule":"Required, together with the patient name and DOB. Not used to validate the patient, so no fuzzy match is needed. The caller may also volunteer a date of service here — it is an optional fallback identifier and narrows the accessions in Step 4. Up to 2 retries, then transfer to an agent.","choices":[{"label":"Caller gives the test name(s)","to":"api_lookup","tone":"go"},{"label":"Retry, max 2","to":"ptest","tone":"neutral"},{"label":"Still failing after 2 retries","to":"transfer","tone":"esc","reason":"Retry limit reached (2 retries)"}],"phi":true,"sayer":"AI agent","chg":"updated"},"api_lookup":{"id":"api_lookup","flow":2,"step":"Step 4 · Lookup & scoping","kind":"api","title":"Record & status lookup","rule":"Backed by QLS. Input: patient name + date of birth (+ identifiers). A 60-day search runs synchronously while a 180-day search fires in parallel, with no extra wait; about 70–85% of calls fall within 90 days. Returns each accession (tied to the ordering account #) with its tests, date of service / collection, result status, predictive turnaround time for pending tests, the disclosure flag, restriction flags, and the patient’s phone, address and email as fallback identifiers.","choices":[{"label":"Patient and results found","to":"authlevel","tone":"go"},{"label":"No patient / no results found","to":"transfer","tone":"esc","reason":"Patient not found"},{"label":"Older than the search window","to":"transfer","tone":"esc","reason":"Older than the search window"},{"label":"API down / timeout","to":"transfer","tone":"esc","reason":"API down or timed out"}],"samples":[{"kind":"Request","method":"POST /api/v1/results/search","body":"{\n  \"sessionId\": \"kore-sess-8f2c41\",\n  \"accountNumber\": \"00004528\",\n  \"patient\": {\n    \"firstName\": \"JANE\",\n    \"lastName\": \"DOE\",\n    \"dateOfBirth\": \"1980-04-12\"\n  },\n  \"testNames\": [\n    \"Lipid Panel\"\n  ],\n  \"dateOfService\": null,\n  \"searchWindowDays\": 60,\n  \"parallelSearchWindowDays\": 180\n}"},{"kind":"Response","method":"200 OK","body":"{\n  \"patientMatchCount\": 1,\n  \"searchWindowUsed\": 60,\n  \"patient\": {\n    \"isMinor\": false,\n    \"phone\": \"+12015550178\",\n    \"address\": \"14 Elm St, Newark, NJ\",\n    \"email\": \"jdoe@example.com\"\n  },\n  \"accessions\": [\n    {\n      \"accessionNumber\": \"WX123456A\",\n      \"orderingAccountNumber\": \"00004528\",\n      \"dateOfCollection\": \"2026-10-05\",\n      \"tests\": [\n        \"Lipid Panel\",\n        \"CMP\"\n      ],\n      \"status\": \"REPORTED\",\n      \"predictedTat\": null,\n      \"flags\": {\n        \"disclosure42CfrPart2\": false,\n        \"accountRestriction\": false,\n        \"stdMinor\": false,\n        \"hiv\": false,\n        \"genetics\": false\n      }\n    },\n    {\n      \"accessionNumber\": \"WX123399B\",\n      \"orderingAccountNumber\": \"00004528\",\n      \"dateOfCollection\": \"2026-10-09\",\n      \"tests\": [\n        \"Vitamin D, 25-OH\"\n      ],\n      \"status\": \"PENDING\",\n      \"predictedTat\": \"2026-10-14\",\n      \"flags\": {\n        \"disclosure42CfrPart2\": false,\n        \"accountRestriction\": false,\n        \"stdMinor\": false,\n        \"hiv\": false,\n        \"genetics\": false\n      }\n    }\n  ]\n}"}],"prompt":"What does the lookup return?","sayer":"AI agent","chg":"updated"},"authlevel":{"id":"authlevel","flow":2,"step":"Step 3 · Patient identification","kind":"decision","title":"Patient authentication level met?","rule":"Non-minor: name + DOB + 1 Level 1 identifier, or 2 Level 2 identifiers. Minor: name + DOB + address or state of residence, then the same Level 1 / Level 2 rule. Required inputs stay the same: patient name, DOB and test name. Optional fallback identifiers: date of service · patient phone · address · email.","choices":[{"label":"Yes","to":"restricted","tone":"go"},{"label":"Not yet — ask for an identifier","to":"ident","tone":"neutral"}],"prompt":"Are enough identifiers confirmed?","sayer":"AI agent","chg":"new"},"ident":{"id":"ident","flow":2,"step":"Step 3 · Patient identification","kind":"ask","title":"Ask for a fallback identifier","say":"The agent asks for an optional fallback identifier: date of service, patient phone, address or email (for a minor, address or state of residence first).","rule":"Read back for yes / no. Up to 2 retries, then transfer to an agent.","choices":[{"label":"Caller gives it","to":"authlevel","tone":"neutral"},{"label":"Retry, max 2","to":"ident","tone":"neutral"},{"label":"Still failing after 2 retries","to":"transfer","tone":"esc","reason":"Retry limit reached (2 retries)"}],"sayer":"AI agent","chg":"new"},"restricted":{"id":"restricted","flow":2,"step":"Step 4 · Lookup & scoping","kind":"decision","title":"Restricted result type?","rule":"HIV and Genetics results are never released by the AI agent, and a minor with an STD-related test always escalates.","choices":[{"label":"No","to":"acctmatch","tone":"go"},{"label":"HIV · Genetics · STD test for a minor","to":"transfer","tone":"esc","reason":"HIV · Genetics · STD test for a minor"}],"prompt":"Is any of these in the result?","sayer":"AI agent"},"acctmatch":{"id":"acctmatch","flow":2,"step":"Step 4 · Lookup & scoping","kind":"decision","title":"Accession’s account # matches the validated account?","rule":"Each accession # is the lab’s identifier for one sample, tied to the ordering physician’s account #. A match means the caller is the Ordering Office; no match means the Non-Ordering / Treating Office.","choices":[{"label":"Matches — Ordering Office","to":"dosgiven","tone":"go","note":"no attestation needed"},{"label":"Doesn’t match — Treating Office","to":"disclosure","tone":"neutral"}],"prompt":"Result of the comparison","sayer":"AI agent","chg":"updated"},"disclosure":{"id":"disclosure","flow":2,"step":"Step 4 · Lookup & scoping","kind":"decision","title":"Disclosure flag active?","rule":"‘42 CFR Part 2’ and account-level restrictions: for certain practices results go only to the ordering physician’s office (existing QLS logic). See Quest’s “Compliance Operations Procedure: Release of Test Results” SOP, page 4.","choices":[{"label":"No","to":"attest","tone":"go"},{"label":"Yes","to":"transfer","tone":"esc","reason":"Disclosure flag — ordering office only"}],"prompt":"Is the flag active?","sayer":"AI agent"},"attest":{"id":"attest","flow":2,"step":"Step 4 · Lookup & scoping","kind":"say","title":"Treatment-purpose attestation","say":"“Are you requesting these results for treatment purposes only?”","rule":"Treating callers always hear the disclosure and must confirm, verbatim. “No” escalates.","choices":[{"label":"Yes","to":"dosgiven","tone":"go"},{"label":"No","to":"transfer","tone":"esc","reason":"Attestation declined"}],"prompt":"What does the caller answer?","sayer":"AI agent","chg":"updated"},"dosgiven":{"id":"dosgiven","flow":2,"step":"Step 4 · Lookup & scoping","kind":"decision","title":"Date of service given in Step 3?","rule":"The date of service is an optional identifier. If the caller gave one, it is used to narrow the returned accessions.","choices":[{"label":"No","to":"count","tone":"go"},{"label":"Yes","to":"narrow","tone":"neutral"}],"prompt":"Did the caller give a date of service?","sayer":"AI agent","chg":"new"},"narrow":{"id":"narrow","flow":2,"step":"Step 4 · Lookup & scoping","kind":"system","title":"Narrow to ±1 week of the date of service","rule":"Keeps only the accessions collected within one week either side of the date of service the caller gave in Step 3.","choices":[{"label":"Narrowed","to":"count","tone":"go"}],"sayer":"AI agent","chg":"new"},"count":{"id":"count","flow":2,"step":"Step 4 · Lookup & scoping","kind":"decision","title":"How many accessions?","rule":"1 → read back the test name and date of service for the caller to confirm. 2–3 → offer the most recent first. More than 3 → transfer to an agent (about 5% of calls).","choices":[{"label":"1","to":"one","tone":"go"},{"label":"2–3","to":"multi","tone":"neutral"},{"label":"More than 3","to":"transfer","tone":"esc","reason":"More than 3 accessions — agent transfer"}],"prompt":"Number of accessions","sayer":"AI agent","chg":"updated"},"one":{"id":"one","flow":2,"step":"Step 4 · Lookup & scoping","kind":"say","title":"Read back test name + date of service","say":"“I see a [test name] from [date of service]. Are these the results you’re looking for?”","rule":"With a single accession, the agent reads back the test name and the date of service for the caller to confirm.","choices":[{"label":"Yes","to":"status","tone":"go"},{"label":"No","to":"another","tone":"neutral"}],"prompt":"What does the caller answer?","sayer":"AI agent","chg":"updated"},"multi":{"id":"multi","flow":2,"step":"Step 4 · Lookup & scoping","kind":"say","title":"Offer the most recent first","say":"“I see you have an accession on [date] and another one on [date]. Which one are you looking for?”","rule":"Most recent first, by date of service / collection; the caller selects.","choices":[{"label":"Picks one","to":"status","tone":"go"},{"label":"None of these","to":"another","tone":"neutral"}],"prompt":"What does the caller answer?","sayer":"AI agent","chg":"updated"},"another":{"id":"another","flow":2,"step":"Step 4 · Lookup & scoping","kind":"say","title":"Ask about another accession","say":"“Is there another accession or date of collection you’re calling about?”","rule":"If date matching creates too much friction, the agent escalates rather than looping.","choices":[{"label":"Gives another date or accession","to":"api_lookup","tone":"neutral"},{"label":"No / too much date-matching friction","to":"transfer","tone":"esc","reason":"Date-matching friction"}],"prompt":"What does the caller answer?","sayer":"AI agent","chg":"new"},"status":{"id":"status","flow":2,"step":"Step 4 · Lookup & scoping","kind":"decision","title":"Result status","rule":"Read from the lookup response. Not in Phase 1: verbal results (transfer to an agent) and priority results handling (a future opportunity).","choices":[{"label":"Results ready","to":"deliver_ask","tone":"go"},{"label":"Results pending","to":"pend_tat","tone":"neutral"},{"label":"Wants verbal results","to":"transfer","tone":"esc","reason":"Verbal results requested"}],"prompt":"What does the caller need?","sayer":"AI agent"},"deliver_ask":{"id":"deliver_ask","flow":3,"step":"Step 5 · Result delivery","kind":"say","title":"Choose a delivery method","say":"“How would you like to receive the results?”","rule":"The caller can opt out and ask for a live agent at any point.","choices":[{"label":"Fax (most common)","to":"fax_offer","tone":"go"},{"label":"Email","to":"email_ask","tone":"go"},{"label":"Asks for an agent","to":"transfer","tone":"esc","reason":"Caller asked for an agent"}],"prompt":"What does the caller choose?","sayer":"AI agent"},"fax_offer":{"id":"fax_offer","flow":3,"step":"Step 5 · Result delivery","kind":"say","title":"Read back the faxes on file","say":"“Would you like the results faxed to the number ending in 0199?”","rule":"Only to a fax already on file — no new or ad hoc numbers. The agent reads back the last 4 digits of each fax on file and the caller confirms. If there is no fax on file but there is an email on file, the agent offers email before escalating.","choices":[{"label":"Caller confirms a fax","to":"api_fax","tone":"go"},{"label":"No fax on file — email on file","to":"email_ask","tone":"neutral","note":"offer email first"},{"label":"Neither fax nor email on file","to":"ehr","tone":"neutral"},{"label":"Declines every fax","to":"transfer","tone":"esc","reason":"No matching fax or email on file"}],"prompt":"What happens?","sayer":"AI agent","chg":"updated"},"api_fax":{"id":"api_fax","flow":3,"step":"Step 5 · Result delivery","kind":"api","title":"Send fax","rule":"Backed by QDRS. Sends the report to the on-file fax ID from the Authenticate provider response. A timeout or API failure escalates.","choices":[{"label":"Fax queued","to":"fax_eta","tone":"go"}],"samples":[{"kind":"Request","method":"POST /api/v1/results/deliver/fax","body":"{\n  \"sessionId\": \"kore-sess-8f2c41\",\n  \"accountNumber\": \"00004528\",\n  \"accessionNumber\": \"WX123456A\",\n  \"faxId\": \"FX-01\"\n}"},{"kind":"Response","method":"202 Accepted","body":"{\n  \"deliveryId\": \"QDRS-88231\",\n  \"channel\": \"FAX\",\n  \"status\": \"QUEUED\",\n  \"destinationLast4\": \"0199\",\n  \"queuedAt\": \"2026-10-12T14:32:10Z\",\n  \"expectedWithinMinutes\": 15\n}"}],"sayer":"AI agent"},"fax_eta":{"id":"fax_eta","flow":3,"step":"Step 5 · Result delivery","kind":"say","title":"Set the delivery expectation","say":"“You should receive the results within 10 to 15 minutes.”","choices":[{"label":"Continue","to":"wrap","tone":"go"}],"sayer":"AI agent","chg":"new"},"email_ask":{"id":"email_ask","flow":3,"step":"Step 5 · Result delivery","kind":"ask","title":"Caller’s email address","say":"The caller gives the address; the agent reads it back and matches it to the record before sending.","rule":"Email goes only to an address already on file — no new email addresses are accepted. Up to 2 retries for a mis-heard address, then transfer to an agent.","choices":[{"label":"Matches","to":"api_email","tone":"go"},{"label":"No match — fax on file","to":"fax_offer","tone":"neutral"},{"label":"No match, no fax / 2 retries used","to":"transfer","tone":"esc","reason":"No matching fax or email on file"}],"prompt":"Does it match an address on file?","sayer":"AI agent","chg":"updated"},"api_email":{"id":"api_email","flow":3,"step":"Step 5 · Result delivery","kind":"api","title":"Send email","rule":"Backed by Paubox (secure email). Only to an address on file. A timeout or API failure escalates.","choices":[{"label":"Email sent","to":"email_ok","tone":"go"}],"samples":[{"kind":"Request","method":"POST /api/v1/results/deliver/email","body":"{\n  \"sessionId\": \"kore-sess-8f2c41\",\n  \"accountNumber\": \"00004528\",\n  \"accessionNumber\": \"WX123456A\",\n  \"emailId\": \"EM-01\"\n}"},{"kind":"Response","method":"202 Accepted","body":"{\n  \"deliveryId\": \"PBX-5521\",\n  \"channel\": \"EMAIL\",\n  \"status\": \"SENT\",\n  \"destination\": \"res****@riversidefm.org\",\n  \"sentAt\": \"2026-10-12T14:32:12Z\"\n}"}],"sayer":"AI agent"},"email_ok":{"id":"email_ok","flow":3,"step":"Step 5 · Result delivery","kind":"say","title":"Confirm the email","say":"“The report for this sample has been sent to your email on file.”","choices":[{"label":"Continue","to":"wrap","tone":"go"}],"sayer":"AI agent"},"ehr":{"id":"ehr","flow":3,"step":"Step 5 · Result delivery","kind":"say","title":"Mention the EHR","say":"“Results may be in your EHR, or I can transfer you to an agent.”","rule":"EHR is informational only and never offered proactively — mentioned only if neither fax nor email is on file. Treating physicians won’t have results in their EHR because they didn’t order the test.","choices":[{"label":"Will check the EHR","to":"wrap","tone":"go"},{"label":"Wants an agent","to":"transfer","tone":"esc","reason":"No matching fax or email on file"}],"prompt":"What does the caller answer?","sayer":"AI agent","chg":"updated"},"pend_tat":{"id":"pend_tat","flow":3,"step":"Step 5 · Result delivery","kind":"say","title":"Share the expected turnaround time","say":"“Your results are expected by <date>.”","rule":"Uses the predictive turnaround time from the API.","choices":[{"label":"Continue","to":"pend_dest","tone":"go"}],"sayer":"AI agent"},"pend_dest":{"id":"pend_dest","flow":3,"step":"Step 5 · Result delivery","kind":"say","title":"Set up auto-send (“fax on final”)","say":"“When the result posts, we’ll send it to the fax ending in 0199 — is that OK?”","rule":"Confirms an on-file fax or email for auto-send when the result posts.","choices":[{"label":"Yes","to":"wrap","tone":"go"},{"label":"No on-file destination","to":"transfer","tone":"esc","reason":"No matching fax or email on file","note":"inferred"}],"prompt":"What does the caller answer?","inferred":"The flow doesn’t say what happens if no on-file destination is accepted.","sayer":"AI agent"},"wrap":{"id":"wrap","flow":4,"step":"Call close · contained","kind":"say","title":"Another patient?","say":"“Results on another patient?”","choices":[{"label":"Yes","to":"pname","tone":"neutral","note":"back to Step 3"},{"label":"No","to":"anything","tone":"go"}],"prompt":"What does the caller answer?","sayer":"AI agent"},"anything":{"id":"anything","flow":4,"step":"Call close · contained","kind":"say","title":"Anything else?","say":"“Anything else I can assist you with today?”","choices":[{"label":"No — that’s all","to":"bye","tone":"go"},{"label":"Yes, about test results","to":"pname","tone":"neutral","note":"back to Step 3"},{"label":"Yes, something unrelated to results","to":"transfer","tone":"esc","reason":"Topic unrelated to results"}],"prompt":"What does the caller answer?","sayer":"AI agent"},"bye":{"id":"bye","flow":4,"step":"Call close · contained","kind":"end","title":"Good bye — call fully contained","rule":"The call ends with no human involved. Proposed: an end-of-call question on why the caller didn’t use their EHR.","choices":[{"label":"Post-call workflow","to":"pc_summary","tone":"go"}],"sayer":"AI agent"},"transfer":{"id":"transfer","flow":4,"step":"Call close · human transfer","kind":"transfer","title":"Transfer to agent","rule":"Escalation triggers: the caller asks for an agent / human / PSR at any point; verbal results requested; no patient or no results found; retry limit reached (still failing after 2 retries); more than 3 accessions; a question outside the agent’s scope (medical advice, etc.); API down or timed out. Any complexity during a call has a live-rep transfer as a fallback.","choices":[{"label":"Continue","to":"api_handoff","tone":"go"}],"sayer":"AI agent"},"api_handoff":{"id":"api_handoff","flow":4,"step":"Call close · human transfer","kind":"api","title":"Create hand-off Case","rule":"A Case is created for the transferred call, with the transfer reason (reason code), the call summary and everything the AI agent collected.","choices":[{"label":"Continue","to":"route","tone":"go"}],"samples":[{"kind":"Request","method":"POST /api/v1/cases/handoff","body":"{\n  \"sessionId\": \"kore-sess-8f2c41\",\n  \"serviceType\": \"Results\",\n  \"transferReason\": \"Patient not found\",\n  \"accountNumber\": \"00004528\",\n  \"practiceName\": \"Riverside Family Medicine\",\n  \"caller\": {\n    \"name\": \"Maria Lopez\",\n    \"jobTitle\": \"Medical Assistant\"\n  },\n  \"patient\": {\n    \"name\": \"JANE DOE\",\n    \"dateOfBirth\": \"1980-04-12\"\n  },\n  \"callSummary\": \"<3 C's summary>\",\n  \"callerAni\": \"+12015550143\"\n}"},{"kind":"Response","method":"201 Created","body":"{\n  \"caseId\": \"5003x00002AbCdE\",\n  \"caseNumber\": \"01234567\",\n  \"five9CallVariables\": {\n    \"sfCaseId\": \"5003x00002AbCdE\",\n    \"transferReason\": \"Patient not found\"\n  }\n}"}],"sayer":"AI agent","chg":"updated"},"route":{"id":"route","flow":4,"step":"Call close · human transfer","kind":"system","title":"Routed to a Quest employee","rule":"Call-control is handed back to Five9. The call lands in the pre-identified NCSS results queues and is routed by the caller’s area code / ANI (NPA/NXX) to 1 of the 6 Physician regions (East, West, etc.). Skill-based routing by transfer reason has been requested.","choices":[{"label":"Continue","to":"screenpop","tone":"go"}],"sayer":"Five9","chg":"updated"},"screenpop":{"id":"screenpop","flow":4,"step":"Call close · human transfer","kind":"system","title":"Agent Assist in the Salesforce console","rule":"The Agent Assist widget shows the transfer reason (reason code) and the call summary with the details the AI agent collected. The employee picks up where the AI left off — the caller doesn’t repeat anything.","choices":[{"label":"Call handled","to":"pc_summary","tone":"go"}],"sayer":"Salesforce","chg":"updated"},"pc_summary":{"id":"pc_summary","flow":5,"step":"Step 6 · Post-call workflow","kind":"system","title":"Write the call summary","rule":"Runs after hang-up and writes the record back through the same Salesforce APIs. A Case is created for every call, whatever the outcome — for documentation, patient safety and the financial record. The summary follows the 3 C’s: Clear (good grammar, no emotions, easy for any reader), Correct (facts only), Complete (who, what, where, when, why and how), per NCSS’s ‘Documentation Practices’ SOP.","choices":[{"label":"Continue","to":"pc_reason","tone":"go"}],"sayer":"Post-call","chg":"updated"},"pc_reason":{"id":"pc_reason","flow":5,"step":"Step 6 · Post-call workflow","kind":"decision","title":"Classify the Service Reason","rule":"Under Service Type “Results”, the agent picks the Service Reason that best matches each task: Fax sent, Email sent, Pending, or Not found (with the reason noted).","choices":[{"label":"Result delivered","to":"api_case","tone":"go"},{"label":"Result pending","to":"api_pending","tone":"neutral"},{"label":"Transferred or not found","to":"api_update","tone":"neutral"}],"prompt":"How did the call end?","sayer":"AI agent","chg":"updated"},"api_case":{"id":"api_case","flow":5,"step":"Step 6 · Post-call workflow","kind":"api","title":"Create Case + Service Request","rule":"Documents what was delivered, where and when — e.g. “Faxed results to xxx-xxx-0199” — with the account, caller, job title, practice, patient and test details collected on the call.","choices":[{"label":"Done","to":"done","tone":"go"}],"samples":[{"kind":"Request","method":"POST /api/v1/cases","body":"{\n  \"sessionId\": \"kore-sess-8f2c41\",\n  \"serviceType\": \"Results\",\n  \"serviceReason\": \"Fax sent\",\n  \"status\": \"Closed\",\n  \"accountNumber\": \"00004528\",\n  \"practiceName\": \"Riverside Family Medicine\",\n  \"caller\": {\n    \"name\": \"Maria Lopez\",\n    \"jobTitle\": \"Medical Assistant\"\n  },\n  \"patient\": {\n    \"name\": \"JANE DOE\",\n    \"dateOfBirth\": \"1980-04-12\"\n  },\n  \"tests\": [\n    \"Lipid Panel\",\n    \"CMP\"\n  ],\n  \"accessionNumber\": \"WX123456A\",\n  \"delivery\": {\n    \"method\": \"FAX\",\n    \"destination\": \"xxx-xxx-0199\",\n    \"deliveryId\": \"QDRS-88231\",\n    \"at\": \"2026-10-12T14:32:10Z\"\n  },\n  \"comments\": \"Faxed results to xxx-xxx-0199\",\n  \"callSummary\": \"<3 C's summary>\",\n  \"transcript\": \"<masked transcript>\"\n}"},{"kind":"Response","method":"201 Created","body":"{\n  \"caseId\": \"5003x00002FgHiJ\",\n  \"caseNumber\": \"01234601\",\n  \"serviceRequestId\": \"SR-0098812\"\n}"}],"sayer":"AI agent"},"api_pending":{"id":"api_pending","flow":5,"step":"Step 6 · Post-call workflow","kind":"api","title":"Create Pending Case","rule":"Holds the verified delivery details; Salesforce auto-sends the results when they post.","choices":[{"label":"Done","to":"done","tone":"go"}],"samples":[{"kind":"Request","method":"POST /api/v1/cases/pending","body":"{\n  \"sessionId\": \"kore-sess-8f2c41\",\n  \"serviceType\": \"Results\",\n  \"serviceReason\": \"Pending\",\n  \"accountNumber\": \"00004528\",\n  \"patient\": {\n    \"name\": \"JANE DOE\",\n    \"dateOfBirth\": \"1980-04-12\"\n  },\n  \"accessionNumber\": \"WX123399B\",\n  \"predictedTat\": \"2026-10-14\",\n  \"autoSend\": {\n    \"method\": \"FAX\",\n    \"faxId\": \"FX-01\"\n  },\n  \"callSummary\": \"<3 C's summary>\"\n}"},{"kind":"Response","method":"201 Created","body":"{\n  \"caseId\": \"5003x00002KlMnO\",\n  \"status\": \"Pending\",\n  \"autoSendArmed\": true\n}"}],"sayer":"AI agent"},"api_update":{"id":"api_update","flow":5,"step":"Step 6 · Post-call workflow","kind":"api","title":"Update the transferred Case","rule":"The Case is still created for a transferred or not-found call, with the transfer reason and everything collected; the summary and masked transcript are added after the call.","choices":[{"label":"Done","to":"done","tone":"go"}],"samples":[{"kind":"Request","method":"PATCH /api/v1/cases/5003x00002AbCdE","body":"{\n  \"serviceReason\": \"Not found\",\n  \"notFoundReason\": \"Patient not found\",\n  \"callSummary\": \"<3 C's summary>\",\n  \"transcript\": \"<masked transcript>\"\n}"},{"kind":"Response","method":"200 OK","body":"{\n  \"caseId\": \"5003x00002AbCdE\",\n  \"updated\": true\n}"}],"sayer":"AI agent","chg":"new"},"done":{"id":"done","flow":5,"step":"Step 6 · Post-call workflow","kind":"end","title":"Record complete","rule":"Transcripts arrive masked — the stored record can’t be turned back into real values.","choices":[],"sayer":"AI agent"}},"presets":[]}</script>
+<script>
+(() => {
+const D = JSON.parse(document.getElementById('data').textContent);
+const BASE = JSON.parse(JSON.stringify(D.nodes)), FL = D.flows;
+let N = D.nodes;
+const $ = id => document.getElementById(id);
+const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const SVGNS = 'http://www.w3.org/2000/svg';
+const KIND = {ask:'Caller gives info', say:'Agent says', decision:'Decision', api:'API call', system:'System', milestone:'Milestone', transfer:'Transfer to agent', end:'End'};
+const EDIT_KINDS = ['ask', 'say', 'decision', 'api', 'system', 'milestone', 'end'];
+const BLURB = {
+  1:'Five9 routes the call and hands off to the agent, which reads the disclaimer, then verifies the account, the caller and the practice.',
+  2:'The agent collects patient identifiers, looks up results, checks the authentication level and release rules, and confirms the right accession.',
+  3:'Ready results go by on-file fax or on-file email; EHR is only mentioned when neither is on file. Pending results get a turnaround time and auto-send.',
+  4:'The call either ends with no human involved or transfers to an NCSS results queue with a Case and Agent Assist context.',
+  5:'After hang-up the agent writes the summary; a Case is created for every call, whatever the outcome.'};
+
+// ======================================================================= edits store
+// EDITS[id] = {node: {...full step}} | {deleted: true} (+ at, by).  POS[flow] = {boxId: [x, y]} (manual positions).
+let EDITS = {}, POS = {}, db = null, me = null, canWrite = false, mode = 'local', users = null, editing = false;
+const LS = 'qta-edits-v8b', LSP = 'qta-pos-v8b';
+try { EDITS = JSON.parse(localStorage.getItem(LS) || '{}') || {}; POS = JSON.parse(localStorage.getItem(LSP) || '{}') || {}; } catch (e) { EDITS = {}; POS = {}; }
+const clone = o => JSON.parse(JSON.stringify(o));
+function applyEdits() {
+  N = clone(BASE);
+  for (const id in EDITS) { const e = EDITS[id]; if (!e) continue;
+    if (e.deleted) { if (id !== 'transfer') delete N[id]; continue; }
+    if (e.node) { N[id] = Object.assign({}, BASE[id] || {}, clone(e.node), {id}); continue; }
+    const n = N[id]; if (!n) continue;  // older wording-only edits
+    ['title', 'say', 'rule', 'prompt'].forEach(k => { if (typeof e[k] === 'string') n[k] = e[k]; });
+    (e.choices || []).forEach((c, i) => { if (n.choices[i] && c) { if (typeof c.label === 'string') n.choices[i].label = c.label; if (typeof c.reason === 'string') n.choices[i].reason = c.reason; } });
+    (e.samples || []).forEach((sm, i) => { if (n.samples && n.samples[i] && sm) Object.assign(n.samples[i], sm); });
+  }
+  for (const id in N) N[id].choices = (N[id].choices || []).filter(c => N[c.to]);
+}
+applyEdits();
+const isEdited = id => !!EDITS[id] && !EDITS[id].deleted;
+const isAdded = id => !BASE[id] && !!N[id];
+
+let flow = 1, zoom = 1;
+try { const z = +localStorage.getItem('qta-zoom'); if (z >= .6 && z <= 1.6) zoom = z; } catch (e) {}
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+// ======================================================================= measuring
+const cv = document.createElement('canvas').getContext('2d');
+function wrap(text, font, maxW) {
+  cv.font = font; const words = text.split(/\s+/); const lines = []; let line = '';
+  for (const w of words) { const t = line ? line + ' ' + w : w; if (cv.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; }
+  if (line) lines.push(line); return lines;
+}
+const width = (t, font) => { cv.font = font; return cv.measureText(t).width; };
+const short = l => l.replace(/\s*\(.*?\)\s*/g, ' ').split(' — ')[0].trim();
+
+
+
+// Hand-set grid for each flow: [column, row]. Column 0 is the main path; branches sit left (−) or right (+).
+const LAYOUT = {
+ 1: {pos: {ivr:[0,0], ivr_q:[0,1], split:[0,2], today:[-1.3,2], handoff:[0,3], disc:[0,4], acct:[0,5], api_auth:[0,6], bldg:[1.3,7],
+          house:[0,8], cname:[0,9], jobtitle:[0,10], practice:[0,11], auth_ok:[0,12], 'J:auth_ok>pname':[0,13]},
+     exit: {}},
+ 2: {pos: {'E:pname':[0,0], pname:[0,1], pdob:[0,2], ptest:[0,3], api_lookup:[0,4], authlevel:[0,5], ident:[-1.35,6], 'R:ident>authlevel':[-1.35,7],
+          restricted:[0,6], acctmatch:[0,7], disclosure:[1.3,8], attest:[1.3,9], dosgiven:[0,10], narrow:[-1.3,11], count:[0,12],
+          one:[0,13], multi:[1.3,13], 'R:multi>another':[1.3,14], another:[-1.3,14], 'R:another>api_lookup':[-1.3,15], status:[0,15],
+          'J:status>deliver_ask':[0,16], 'J:status>pend_tat':[1.3,16]},
+     escSide: {ident:'L', another:'L'}, loopSide: {ident:'R'},
+     wps: {'multi>status': {exit:'L', pts:[[0.62,13],[0.62,14.55],[0,14.55]]}, 'status>pend_tat': {exit:'B', pts:[[0,15.55],[1.3,15.55]]}}},
+ 3: {pos: {'E:deliver_ask':[0,0], deliver_ask:[0,1], fax_offer:[0,2], api_fax:[0,3], fax_eta:[0,4], 'J:fax_eta>wrap':[0,5],
+          ehr:[-1.5,3], 'J:ehr>wrap':[-1.5,4],
+          email_ask:[1.6,2], 'R:email_ask>fax_offer':[2.7,3], api_email:[1.6,3], email_ok:[1.6,4], 'J:email_ok>wrap':[1.6,5],
+          'E:pend_tat':[-1.5,5.3], pend_tat:[-1.5,6.3], pend_dest:[-1.5,7.3], 'J:pend_dest>wrap':[-1.5,8.3]},
+     escSide: {fax_offer:'L', ehr:'L', pend_dest:'L'}, cw: 310},
+ 4: {pos: {'E:wrap':[0,0], wrap:[0,1], 'J:wrap>pname':[-1.35,1], anything:[0,2], 'J:anything>pname':[-1.35,2], bye:[0,3], 'J:bye>pc_summary':[0,4],
+          'E:transfer':[1.7,1], transfer:[1.7,2], api_handoff:[1.7,3], route:[1.7,4], screenpop:[1.7,5], 'J:screenpop>pc_summary':[1.7,6]}},
+ 5: {pos: {'E:pc_summary':[0,0], pc_summary:[0,1], pc_reason:[0,2], api_case:[-1.4,3], api_pending:[0,3], api_update:[1.4,3], done:[0,4]}},
+};
+
+function graphFor(f) {
+  const L = LAYOUT[f] || {pos: {}}, nodes = [], edges = [], ids = new Set(Object.keys(N).filter(k => N[k].flow === f));
+  ids.forEach(id => nodes.push({id, n: N[id], type: N[id].kind}));
+  ids.forEach(id => N[id].choices.forEach((c, i) => {
+    if (c.label === 'Start a new call') return;
+    const lab = short(c.label), key = id + '>' + c.to;
+    if (c.to === 'transfer' && f !== 4) { const tid = 'T:' + id; let p = nodes.find(x => x.id === tid);
+      if (!p) { p = {id: tid, type: 'xfer', reasons: [], labels: [], src: id, cis: []}; nodes.push(p); edges.push({v: id, w: tid, label: lab, esc: true, src: id, ci: i}); }
+      p.reasons.push(c.reason || ''); p.labels.push(lab); p.cis.push(i); if (p.labels.length > 1) { const e0 = edges.find(e => e.w === tid); e0.label = ''; e0.ci = null; } return; }
+    if (L.pos['R:' + key]) { const rid = 'R:' + key; nodes.push({id: rid, type: 'ref', to: c.to}); edges.push({v: id, w: rid, label: lab, src: id, ci: i}); return; }
+    if (!ids.has(c.to)) { const jid = 'J:' + key; if (!nodes.find(x => x.id === jid)) nodes.push({id: jid, type: 'jump', to: c.to, flow: N[c.to].flow}); edges.push({v: id, w: jid, label: lab, src: id, ci: i}); return; }
+    edges.push({v: id, w: c.to, label: lab, esc: c.tone === 'esc', self: c.to === id, src: id, ci: i});
+  }));
+  const ent = {};
+  Object.values(N).forEach(n => { if (n.flow === f) return; n.choices.forEach(c => {
+    if (ids.has(c.to) && c.to !== 'transfer' && c.label !== 'Start a new call') { const k = 'E:' + c.to;
+      if (!ent[k]) { ent[k] = {id: k, type: 'entry', from: [], to: c.to}; nodes.push(ent[k]); edges.push({v: k, w: c.to, label: ''}); }
+      if (!ent[k].from.includes(n.flow)) ent[k].from.push(n.flow); } }); });
+  if (f === 4 && N.transfer) { nodes.push({id: 'E:transfer', type: 'entry', from: 0, to: 'transfer', escEntry: true}); edges.push({v: 'E:transfer', w: 'transfer', label: '', esc: true}); }
+  return {nodes, edges, L};
+}
+
+const F_T = '700 16px "Source Sans 3", sans-serif', F_B = '600 11.5px "Source Sans 3", sans-serif', F_S = '400 13.5px "Source Sans 3", sans-serif';
+function measureNode(nd) {
+  let title, badge = '', sub = '';
+  if (nd.type === 'xfer') { title = 'Transfer to agent'; sub = nd.labels.length > 1 ? nd.labels.map(l => '• ' + l).join('\n') : (nd.reasons[0] || ''); }
+  else if (nd.type === 'jump') { title = `Go to Flow ${nd.flow}`; sub = N[nd.to].title; }
+  else if (nd.type === 'ref') { title = '↺ Back to'; sub = N[nd.to].title; }
+  else if (nd.type === 'entry') { const fr = [].concat(nd.from).sort(); title = nd.escEntry ? 'From any escalation' : 'From Flow ' + fr.join(' / '); sub = nd.escEntry ? 'in Flows 1–3' : fr.map(x => FL[x - 1].name).join(' · '); }
+  else { title = nd.n.title || 'Untitled step'; badge = (KIND[nd.n.kind] || '').toUpperCase() + (nd.n.phi ? ' · PHI' : '') + (nd.n.inferred ? ' · INFERRED' : ''); nd.chg = nd.n.chg; }
+  const maxW = nd.type === 'decision' ? 210 : 230;
+  const tl = wrap(title, F_T, maxW), sl = sub ? sub.split('\n').flatMap(p => wrap(p, F_S, maxW)) : [];
+  const tw = Math.max(...tl.map(t => width(t, F_T)), ...sl.map(t => width(t, F_S)), badge ? width(badge, F_B) * 1.1 : 0);
+  let w = Math.max(tw + 34, ['xfer','jump','entry','ref'].includes(nd.type) ? 150 : 170);
+  const h = 18 + (badge ? 17 : 0) + tl.length * 20 + sl.length * 18 + 12;
+  if (nd.type === 'decision') w += 40;
+  Object.assign(nd, {title, badge, tl, sl, width: Math.ceil(w), height: Math.ceil(h)});
+}
+function el(tag, attrs, parent) { const e = document.createElementNS(SVGNS, tag); for (const a in attrs) e.setAttribute(a, attrs[a]); if (parent) parent.appendChild(e); return e; }
+function roundedPath(pts, r = 9) {
+  let d = `M${pts[0].x},${pts[0].y}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const p = pts[i - 1], c = pts[i], n = pts[i + 1];
+    const l1 = Math.hypot(c.x - p.x, c.y - p.y) || 1, l2 = Math.hypot(n.x - c.x, n.y - c.y) || 1, rr = Math.min(r, l1 / 2, l2 / 2);
+    const a = {x: c.x - (c.x - p.x) / l1 * rr, y: c.y - (c.y - p.y) / l1 * rr}, b = {x: c.x + (n.x - c.x) / l2 * rr, y: c.y + (n.y - c.y) / l2 * rr};
+    d += ` L${a.x},${a.y} Q${c.x},${c.y} ${b.x},${b.y}`;
+  }
+  const z = pts[pts.length - 1]; return d + ` L${z.x},${z.y}`;
+}
+const LBL = '600 13.5px "Source Sans 3", sans-serif';
+const CW = 330, GAP = 64, PAD = 40;
+const overlap = (a, b, m = 16) => Math.abs(a.x - b.x) < (a.width + b.width) / 2 + m && Math.abs(a.y - b.y) < (a.height + b.height) / 2 + m;
+
+// ======================================================================= render
+let VIEW = null;   // {nodes, byId, offX, offY, scale}
+function render() {
+  const {nodes, edges, L} = graphFor(flow);
+  nodes.forEach(nd => { if (nd.n) nd.type = nd.n.kind; measureNode(nd); });
+  const byId = {}; nodes.forEach(nd => byId[nd.id] = nd);
+  const P0 = POS[flow] || {};
+  // 1) the designed grid
+  const gridded = nodes.filter(nd => nd.type !== 'xfer' && L.pos[nd.id]);
+  gridded.forEach(nd => { nd.col = L.pos[nd.id][0]; nd.row = L.pos[nd.id][1]; });
+  const rows = [...new Set(gridded.map(n => n.row))].sort((a, b) => a - b), rowY = {}; let y = PAD;
+  rows.forEach(r => { const hmax = Math.max(...gridded.filter(n => n.row === r).map(n => n.height)); y += hmax / 2; rowY[r] = y; y += hmax / 2 + GAP; });
+  const RY = r => { if (rowY[r] !== undefined) return rowY[r]; if (!rows.length) return PAD;
+    const lo = Math.max(...rows.filter(x => x < r)), hi = Math.min(...rows.filter(x => x > r));
+    if (!isFinite(lo)) return rowY[hi] - (hi - r) * 90; if (!isFinite(hi)) return rowY[lo] + (r - lo) * 90;
+    const lowBottom = rowY[lo] + Math.max(...gridded.filter(n => n.row === lo).map(n => n.height)) / 2, hiTop = rowY[hi] - Math.max(...gridded.filter(n => n.row === hi).map(n => n.height)) / 2;
+    return lowBottom + (hiTop - lowBottom) * (r - lo) / (hi - lo); };
+  const cw = L.cw || CW;
+  gridded.forEach(nd => { nd.x = nd.col * cw; nd.y = RY(nd.row); nd.placed = true; });
+  // 2) manual positions
+  nodes.forEach(nd => { if (nd.type !== 'xfer' && P0[nd.id]) { nd.x = P0[nd.id][0]; nd.y = P0[nd.id][1]; nd.placed = true; nd.moved = true; } });
+  // 3) anything new: next to whatever leads into it, else below everything
+  for (let pass = 0; pass < 6; pass++) nodes.forEach(nd => { if (nd.placed || nd.type === 'xfer') return;
+    const inc = edges.find(e => e.w === nd.id && byId[e.v] && byId[e.v].placed && e.v !== nd.id);
+    if (!inc && pass < 5) return;
+    const placed = nodes.filter(m => m.placed);
+    if (inc) { const s = byId[inc.v]; nd.x = s.x + cw; nd.y = s.y + s.height / 2 + GAP + nd.height / 2; }
+    else { nd.x = 0; nd.y = (placed.length ? Math.max(...placed.map(m => m.y + m.height / 2)) : 0) + GAP + nd.height / 2; }
+    let guard = 0; while (placed.some(m => overlap(m, nd)) && guard++ < 40) nd.y += 40;
+    nd.placed = true; });
+  // 4) escalation pills beside their step
+  nodes.filter(nd => nd.type === 'xfer').forEach(nd => { const s = byId[nd.src]; const side = (L.escSide || {})[nd.src] === 'L' ? -1 : 1; nd.side = side;
+    const ed = edges.find(e => e.w === nd.id); const gap = Math.max(60, (ed && ed.label ? width(ed.label, LBL) + 34 : 0));
+    nd.x = s.x + side * (s.width / 2 + gap + nd.width / 2); nd.y = s.y;
+    if (P0[nd.id]) { nd.x = P0[nd.id][0]; nd.y = P0[nd.id][1]; nd.moved = true; } });
+  // 5) shift into view
+  const minX = Math.min(...nodes.map(n => n.x - n.width / 2)), maxX = Math.max(...nodes.map(n => n.x + n.width / 2));
+  const minY = Math.min(...nodes.map(n => n.y - n.height / 2)), maxY = Math.max(...nodes.map(n => n.y + n.height / 2));
+  const offX = -minX + PAD + 70, offY = -minY + PAD;
+  nodes.forEach(nd => { nd.wx = nd.x; nd.wy = nd.y; nd.x += offX; nd.y += offY; });
+  const W = maxX - minX + 2 * (PAD + 70), H = maxY - minY + 2 * PAD;
+  const X = c => c * cw + offX, Yr = r => RY(r) + offY;
+  // 6) right-angle routing
+  const P = (nd, side) => ({T: {x: nd.x, y: nd.y - nd.height / 2}, B: {x: nd.x, y: nd.y + nd.height / 2}, L: {x: nd.x - nd.width / 2, y: nd.y}, R: {x: nd.x + nd.width / 2, y: nd.y}}[side]);
+  const forkY = {}, forkDir = {}, forkDir2 = {};
+  edges.forEach(e => { if (e.self) return; const a = byId[e.v], b = byId[e.w];
+    const ov = !a.moved && !b.moved && (L.wps || {})[e.v + '>' + (b.to || b.id)]; const exitPref = (L.exit || {})[e.v + '>' + (b.to || b.id)];
+    let pts, lab;
+    if (ov) { const s = P(a, ov.exit); pts = [s, ...ov.pts.map(([c, r]) => ({x: X(c), y: Yr(r)})), P(b, 'T')]; if (ov.exit === 'L' || ov.exit === 'R') pts[1].y = s.y; else pts[1].x = s.x; lab = {seg: ov.exit === 'B' ? 1 : 0, nearSrc: ov.exit === 'B'}; }
+    else if (Math.abs(a.y - b.y) < 1) { const right = b.x > a.x; pts = [P(a, right ? 'R' : 'L'), P(b, right ? 'L' : 'R')]; lab = {seg: 0}; }
+    else if (b.y > a.y && Math.abs(a.x - b.x) < 1) { pts = [P(a, 'B'), P(b, 'T')]; lab = {seg: 0}; }
+    else if (b.y - b.height / 2 > a.y + a.height / 2 && (a.type === 'decision' || exitPref === 'side')) { const s = P(a, b.x > a.x ? 'R' : 'L'); pts = [s, {x: b.x, y: s.y}, P(b, 'T')]; lab = {seg: 0}; }
+    else if (b.y - b.height / 2 > a.y + a.height / 2) { const s = P(a, 'B'), t = P(b, 'T'); const my = s.y + Math.min(28, (t.y - s.y) / 2); pts = [s, {x: s.x, y: my}, {x: t.x, y: my}, t]; lab = {seg: 1, nearSrc: true}; forkY[e.v] = Math.max(forkY[e.v] || 0, my); const d = Math.sign(t.x - s.x); if (forkDir[e.v] && forkDir[e.v] !== d) forkDir2[e.v] = 1; forkDir[e.v] = d; }
+    else if (Math.abs(a.y - b.y) < (a.height + b.height) / 2) { const right = b.x > a.x, s = P(a, right ? 'R' : 'L'), t = P(b, right ? 'L' : 'R'), mx = (s.x + t.x) / 2; pts = [s, {x: mx, y: s.y}, {x: mx, y: t.y}, t]; lab = {seg: 0}; }
+    else { const s = P(a, 'L'), t = P(b, 'L'); const lx = Math.min(s.x, t.x) - 40; pts = [s, {x: lx, y: s.y}, {x: lx, y: t.y}, t]; lab = {seg: 1}; }
+    e.pts = pts; e.lab = lab; });
+  const avail = Math.max(300, $('board').clientWidth - 48);
+  const k = Math.max(0.64, Math.min(1, avail / W)) * zoom;
+  const svg = el('svg', {viewBox: `0 0 ${W} ${H}`, width: W * k, height: H * k, role: 'img', 'aria-label': `Flow ${flow} chart`});
+  const defs = el('defs', {}, svg);
+  [['ar', css('--line')], ['are', css('--esc')]].forEach(([id, c]) => { const m = el('marker', {id, viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7.5, markerHeight: 7.5, orient: 'auto-start-reverse'}, defs); el('path', {d: 'M0,0 L10,5 L0,10 z', fill: c}, m); });
+  const ge = el('g', {}, svg), gl = el('g', {}, svg), gn = el('g', {}, svg);
+  const labelGroup = (e, x, y, w) => { const lg = el('g', {class: 'edge' + (e.esc ? ' esc' : '') + (e.ci != null ? ' lbl' : ''), 'data-v': e.v, 'data-w': e.w, ...(e.ci != null ? {'data-src': e.src, 'data-ci': e.ci} : {})}, gl);
+    el('rect', {x, y, width: w, height: 22, rx: 6}, lg); const t = el('text', {x: x + w / 2, y: y + 16, 'text-anchor': 'middle'}, lg); t.textContent = e.label; return lg; };
+  edges.forEach(e => { if (e.self) return;
+    const grp = el('g', {class: 'edge' + (e.esc ? ' esc' : ''), 'data-v': e.v, 'data-w': e.w}, ge);
+    el('path', {d: roundedPath(e.pts), 'marker-end': `url(#${e.esc ? 'are' : 'ar'})`}, grp);
+    if (!e.label) return;
+    const sp = e.pts[e.lab.seg], ep = e.pts[e.lab.seg + 1], lw = width(e.label, LBL) + 14;
+    let cx = (sp.x + ep.x) / 2, cy = (sp.y + ep.y) / 2;
+    if (Math.abs(sp.x - ep.x) < 1) { const side = forkDir[e.v] < 0 ? 1 : -1; cx = sp.x + side * (10 + lw / 2); cy = sp.y + Math.min(24, Math.abs(ep.y - sp.y) / 2);
+      if ((forkDir[e.v] > 0 || forkDir2[e.v]) && forkY[e.v]) cy = Math.min(Math.max(cy, forkY[e.v] + 22), ep.y - 14); }
+    else if (e.lab.nearSrc && Math.abs(ep.x - sp.x) > lw + 40) { cx = sp.x + Math.sign(ep.x - sp.x) * (lw / 2 + 18); }
+    labelGroup(e, cx - lw / 2, cy - 11, lw); });
+  const apiNodes = nodes.filter(nd => nd.type === 'api' && nd.n.samples && nd.n.samples.length).sort((a, b) => a.y - b.y || a.x - b.x);
+  apiNodes.forEach((nd, i) => nd.apiNum = i + 1);
+  nodes.forEach(nd => drawNode(nd, gn));
+  edges.filter(e => e.self).forEach(e => { const nd = byId[e.v]; const sd = (L.loopSide || {})[e.v] === 'R' ? 1 : -1; const x = nd.x + sd * nd.width / 2, y = nd.y;
+    const grp = el('g', {class: 'edge', 'data-v': e.v, 'data-w': e.w}, ge);
+    el('path', {d: roundedPath([{x, y: y - 9}, {x: x + sd * 30, y: y - 9}, {x: x + sd * 30, y: y + 9}, {x: x + sd, y: y + 9}], 6), 'marker-end': 'url(#ar)'}, grp);
+    const lw = width(e.label, LBL) + 14; labelGroup(e, sd < 0 ? x - 36 - lw : x + 36, y - 11, lw); });
+  gl.querySelectorAll('.lbl').forEach(g => g.addEventListener('dblclick', ev => { if (!editing) return; ev.preventDefault(); inlineEditLabel(g); }));
+  VIEW = {nodes, byId, offX, offY, W};
+  $('board').replaceChildren(svg);
+  renderApis(apiNodes);
+  $('blurb').textContent = BLURB[flow];
+  [...$('tabs').children].forEach((b, i) => b.setAttribute('aria-selected', i + 1 === flow));
+  $('z0').textContent = zoom === 1 ? 'Fit' : Math.round(zoom * 100) + '%';
+}
+function drawNode(nd, gn) {
+  const x = nd.x - nd.width / 2, y = nd.y - nd.height / 2, w = nd.width, h = nd.height;
+  const grp = el('g', {class: 'node', tabindex: 0, role: 'button', 'data-id': nd.id, 'aria-label': nd.title}, gn);
+  let fill = css('--card'), stroke = css('--line'), ink = css('--ink'), sub = css('--muted'), badge = css('--muted'), sw = 1.5;
+  const t = nd.type;
+  if (t === 'ask') { fill = css('--entry'); stroke = css('--entry-line'); badge = css('--teal'); }
+  if (t === 'api') { fill = css('--sys'); stroke = css('--purple'); badge = css('--purple'); sw = 2; }
+  if (t === 'system') { fill = css('--sys'); stroke = css('--sys-line'); }
+  if (t === 'decision') { fill = css('--dec'); stroke = css('--dec'); ink = css('--dec-ink'); badge = 'rgba(255,255,255,.75)'; }
+  if (t === 'milestone') { fill = css('--hub'); stroke = css('--hub'); ink = '#1F3318'; badge = '#2D4D21'; }
+  if (t === 'end') { fill = css('--gold'); stroke = css('--gold'); ink = css('--gold-ink'); badge = 'rgba(255,255,255,.8)'; }
+  if (t === 'transfer' || t === 'xfer') { fill = css('--esc-fill'); stroke = css('--esc'); sub = css('--esc'); badge = css('--esc'); sw = 2; }
+  if (t === 'ref') { fill = css('--card'); stroke = css('--mag-fill'); ink = css('--ink'); sub = css('--muted'); sw = 2; }
+  if (t === 'jump' || t === 'entry') { fill = css('--mag-fill'); stroke = css('--mag-fill'); ink = '#1A2410'; sub = '#2E3B12'; }
+  if (nd.escEntry) { fill = css('--esc-fill'); stroke = css('--esc'); ink = css('--ink'); sub = css('--esc'); }
+  if (t === 'decision') { const k = 20; el('polygon', {class: 'shape', points: `${x + k},${y} ${x + w - k},${y} ${x + w},${y + h / 2} ${x + w - k},${y + h} ${x + k},${y + h} ${x},${y + h / 2}`, fill, stroke, 'stroke-width': sw}, grp); }
+  else el('rect', {class: 'shape', x, y, width: w, height: h, rx: ['jump', 'ref', 'entry', 'xfer', 'end', 'milestone', 'transfer'].includes(t) ? Math.min(h / 2, 22) : 10, fill, stroke, 'stroke-width': sw}, grp);
+  let cy = y + 16;
+  if (nd.badge) { const b = el('text', {x: nd.x, y: cy + 9, 'text-anchor': 'middle', fill: badge, style: 'font-size:11.5px;font-weight:700;letter-spacing:.08em'}, grp); b.textContent = nd.badge; cy += 17; }
+  nd.tl.forEach(l => { const tt = el('text', {x: nd.x, y: cy + 14, 'text-anchor': 'middle', fill: ink, style: 'font-size:16px;font-weight:700'}, grp); tt.textContent = l; cy += 20; });
+  nd.sl.forEach(l => { const tt = el('text', {x: nd.x, y: cy + 13, 'text-anchor': 'middle', fill: sub, style: 'font-size:13.5px'}, grp); tt.textContent = l; cy += 18; });
+  const tag = nd.n && isAdded(nd.id) ? ['ADDED', css('--purple'), css('--card')] : null;
+  if (tag) { const tw2 = width(tag[0], '700 10.5px "Source Sans 3"') + 12; const cg = el('g', {}, grp);
+    el('rect', {x: x + w - tw2 - 6, y: y - 9, width: tw2, height: 17, rx: 8.5, fill: tag[1]}, cg);
+    const ct = el('text', {x: x + w - 6 - tw2 / 2, y: y + 3.5, 'text-anchor': 'middle', fill: tag[2], style: 'font-size:10.5px;font-weight:700;letter-spacing:.06em'}, cg); ct.textContent = tag[0]; }
+  if (nd.n && isEdited(nd.id) && !isAdded(nd.id)) { const eg = el('g', {}, grp); el('circle', {cx: x + 2, cy: y + 2, r: 11, fill: css('--card'), stroke: css('--purple'), 'stroke-width': 2}, eg);
+    const et = el('text', {x: x + 2, y: y + 7, 'text-anchor': 'middle', fill: css('--purple'), style: 'font-size:13px;font-weight:700'}, eg); et.textContent = '✎'; }
+  if (nd.apiNum) { const bg = el('g', {}, grp); el('circle', {cx: x - 2, cy: y + h - 2, r: 13, fill: css('--purple')}, bg);
+    const bt = el('text', {x: x - 2, y: y + h + 3, 'text-anchor': 'middle', fill: css('--card'), style: 'font-size:14px;font-weight:700'}, bg); bt.textContent = nd.apiNum; }
+  { const ck = cKey(nd); const cn = ck ? openCount(ck) : 0;
+    if (cn) { const cg = el('g', {}, grp); const bxp = x + w - 4, byp = y + h - 2;
+      el('rect', {x: bxp - 20, y: byp - 11, width: 40, height: 22, rx: 11, fill: css('--mag')}, cg);
+      const ct = el('text', {x: bxp, y: byp + 4.5, 'text-anchor': 'middle', fill: '#fff', style: 'font-size:12.5px;font-weight:700'}, cg); ct.textContent = '💬 ' + cn; } }
+  bindNode(grp, nd);
+}
+
+// ======================================================================= interaction on the chart
+let clickTimer = null, drag = null;
+function bindNode(grp, nd) {
+  grp.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(nd); } });
+  grp.addEventListener('mouseenter', () => !drag && hot(nd.id, true)); grp.addEventListener('mouseleave', () => !drag && hot(nd.id, false));
+  grp.addEventListener('focus', () => hot(nd.id, true)); grp.addEventListener('blur', () => hot(nd.id, false));
+  grp.addEventListener('click', () => { if (grp._dragged) { grp._dragged = false; return; }
+    if (!editing) { open(nd); return; }
+    clearTimeout(clickTimer); clickTimer = setTimeout(() => open(nd), 240); });
+  grp.addEventListener('dblclick', e => { if (!editing) return; e.preventDefault(); clearTimeout(clickTimer);
+    if (nd.n) inlineEditNode(grp, nd); else if (nd.type === 'xfer' && nd.labels.length === 1) inlineEditReason(grp, nd); else open(nd); });
+  grp.addEventListener('pointerdown', e => { if (!editing || e.button !== 0) return;
+    const svg = grp.ownerSVGElement, sc = svg.getBoundingClientRect().width / VIEW.W;
+    drag = {grp, nd, sx: e.clientX, sy: e.clientY, sc, moved: false}; grp.setPointerCapture(e.pointerId); });
+  grp.addEventListener('pointermove', e => { if (!drag || drag.grp !== grp) return;
+    const dx = (e.clientX - drag.sx) / drag.sc, dy = (e.clientY - drag.sy) / drag.sc;
+    if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+    drag.moved = true; grp.classList.add('dragging'); grp.setAttribute('transform', `translate(${dx},${dy})`); drag.dx = dx; drag.dy = dy; });
+  const end = e => { if (!drag || drag.grp !== grp) return; const d = drag; drag = null; grp.classList.remove('dragging');
+    if (!d.moved) return; grp._dragged = true;
+    let nx = d.nd.wx + d.dx, ny = d.nd.wy + d.dy;
+    // snap: line up with any other box within 14px, else to a 10px grid
+    let sx = null, sy = null;
+    VIEW.nodes.forEach(m => { if (m === d.nd) return; if (sx == null && Math.abs(m.wx - nx) < 14) sx = m.wx; if (sy == null && Math.abs(m.wy - ny) < 14) sy = m.wy; });
+    nx = sx ?? Math.round(nx / 10) * 10; ny = sy ?? Math.round(ny / 10) * 10;
+    const p = Object.assign({}, POS[flow] || {}); p[d.nd.id] = [Math.round(nx), Math.round(ny)];
+    savePos(flow, p); };
+  grp.addEventListener('pointerup', end); grp.addEventListener('pointercancel', end);
+}
+function overlayInput(target, value, multiline, onSave) {
+  const r = target.getBoundingClientRect(); const box = document.createElement(multiline ? 'textarea' : 'input');
+  box.className = 'inl'; box.value = value;
+  Object.assign(box.style, {left: Math.max(8, r.left - 6) + 'px', top: Math.max(8, r.top - 6) + 'px', width: Math.max(170, r.width + 12) + 'px', height: (multiline ? Math.max(56, r.height + 12) : 40) + 'px'});
+  document.body.appendChild(box); box.focus(); box.select();
+  let done = false; const finish = save => { if (done) return; done = true; const v = box.value.trim(); box.remove(); if (save && v && v !== value) onSave(v); };
+  box.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); finish(true); } if (e.key === 'Escape') { e.preventDefault(); finish(false); } });
+  box.addEventListener('blur', () => finish(true));
+}
+function inlineEditNode(grp, nd) { const n = N[nd.id];
+  overlayInput(grp.querySelector('.shape'), n.title, true, v => saveNode(nd.id, Object.assign(clone(n), {title: v}), 'Box title updated')); }
+function inlineEditLabel(g) { const id = g.dataset.src, ci = +g.dataset.ci, n = N[id]; if (!n || !n.choices[ci]) return;
+  overlayInput(g.querySelector('rect'), n.choices[ci].label, false, v => { const nn = clone(n); nn.choices[ci].label = v; saveNode(id, nn, 'Arrow label updated'); }); }
+function inlineEditReason(grp, nd) { const n = N[nd.src], ci = nd.cis[0]; if (!n) return;
+  overlayInput(grp.querySelector('.shape'), n.choices[ci].reason || '', false, v => { const nn = clone(n); nn.choices[ci].reason = v; saveNode(nd.src, nn, 'Transfer reason updated'); }); }
+
+// ======================================================================= API cards
+const BACKED = {api_auth: 'Salesforce account record', api_lookup: 'QLS', api_fax: 'QDRS', api_email: 'Paubox', api_handoff: 'Salesforce Case', api_case: 'Salesforce Case + Service Request', api_pending: 'Salesforce Case', api_update: 'Salesforce Case'};
+function renderApis(list) {
+  $('apis').hidden = !list.length;
+  $('apilist').innerHTML = list.map(nd => { const n = nd.n;
+    const blocks = n.samples.map((sm, i) => { const key = n.id + '-' + i;
+      return `<div class="api"><div class="bar"><span class="lbl">${esc(sm.kind)}</span><span class="sp"></span><button class="copy" data-copy="${key}">Copy</button></div>` +
+        (editing ? `<input class="methodedit" id="m-${key}" value="${esc(sm.method)}" aria-label="${esc(sm.kind)} method and endpoint"><textarea class="jsonedit" id="pre-${key}" spellcheck="false" aria-label="${esc(sm.kind)} JSON">${esc(sm.body)}</textarea><div class="fld"><span class="err" id="err-${key}" style="padding:0 14px 8px"></span></div>`
+                 : `<div class="method">${esc(sm.method)}</div><pre id="pre-${key}">${esc(sm.body)}</pre>`) + `</div>`; }).join('');
+    return `<article class="apicard" id="api-${n.id}"><header><span class="num">${nd.apiNum}</span><h3>${esc(n.title)}</h3><span class="by">${esc(BACKED[n.id] || '')}${BACKED[n.id] ? ' · ' : ''}${esc(n.step || '')}</span>
+      <span style="margin-left:auto;display:flex;gap:8px">${editing && canWrite ? `<button class="btn2 primary" data-savesamples="${esc(n.id)}">Save samples</button>` : ''}<button class="copy" data-show="${esc(nd.id)}">Show on chart</button></span></header>
+      <p class="what">${esc(n.rule || '')}</p><div class="rr">${blocks}</div></article>`; }).join('');
+  $('apilist').querySelectorAll('[data-copy]').forEach(b => b.onclick = () => { const pre = $('pre-' + b.dataset.copy); const txt = pre.value ?? pre.textContent;
+    const ok = () => { b.textContent = 'Copied'; setTimeout(() => b.textContent = 'Copy', 1400); };
+    const sel = () => { if (pre.select) pre.select(); else { const r = document.createRange(); r.selectNodeContents(pre); const g = getSelection(); g.removeAllRanges(); g.addRange(r); } b.textContent = 'Selected'; };
+    try { navigator.clipboard.writeText(txt).then(ok, sel); } catch (e) { sel(); } });
+  $('apilist').querySelectorAll('[data-show]').forEach(b => b.onclick = () => flash(b.dataset.show));
+  $('apilist').querySelectorAll('[data-savesamples]').forEach(b => b.onclick = () => { const id = b.dataset.savesamples, n = clone(N[id]); let bad = false;
+    n.samples.forEach((sm, i) => { const key = id + '-' + i, body = $('pre-' + key).value; try { JSON.parse(body); $('err-' + key).textContent = ''; } catch (er) { $('err-' + key).textContent = 'Not valid JSON: ' + er.message; bad = true; }
+      sm.body = body; sm.method = $('m-' + key).value; });
+    if (!bad) saveNode(id, n, 'API samples saved'); });
+}
+function flash(id) { const n = $('board').querySelector(`.node[data-id="${CSS.escape(id)}"]`); if (n) { n.classList.add('flash'); n.scrollIntoView({block: 'center', inline: 'center', behavior: 'smooth'}); setTimeout(() => n.classList.remove('flash'), 2600); } }
+function hot(id, on) {
+  const svg = $('board').querySelector('svg'); if (!svg) return; svg.classList.toggle('dimmed', on);
+  svg.querySelectorAll('.hot').forEach(x => x.classList.remove('hot')); if (!on) return;
+  const near = new Set([id]);
+  svg.querySelectorAll('.edge').forEach(e => { if (e.dataset.v === id || e.dataset.w === id) { e.classList.add('hot'); near.add(e.dataset.v); near.add(e.dataset.w); } });
+  svg.querySelectorAll('.node').forEach(n => n.classList.toggle('hot', near.has(n.dataset.id)));
+}
+function goFlow(f, focusId) { flow = f; render(); try { history.replaceState(null, '', '#flow' + f); } catch (e) {} if (focusId) flash(focusId); }
+
+// ======================================================================= details sheet (read) and editor
+let lastFocus = null, curNd = null;
+function stepOf(nd) { return nd.type === 'xfer' ? N[nd.src] && N.transfer : nd.escEntry ? N.transfer : nd.n && N[nd.n.id]; }
+function open(nd) {
+  curNd = nd;
+  if (nd.type === 'jump') { goFlow(nd.flow, nd.to); return; }
+  if (nd.type === 'ref') { flash(nd.to); return; }
+  if (nd.type === 'entry' && !nd.escEntry) { const fr = [].concat(nd.from).sort()[0]; const src = Object.values(N).find(n => n.flow === fr && n.choices.some(c => c.to === nd.to)); goFlow(fr, src && src.id); return; }
+  if (editing && canWrite) { if (nd.type === 'xfer') openEditor(N[nd.src]); else openEditor(stepOf(nd)); return; }
+  const n = stepOf(nd); if (!n) return;
+  let h = `<div class="editbar"><button class="btn2 primary" id="shEdit" ${canWrite ? '' : 'disabled title="You have view-only access"'}>✎ Edit this step</button><span class="sp" style="flex:1"></span><button class="x" id="shClose">Close ✕</button></div>`;
+  if (isEdited(n.id)) h += `<span class="edited" id="edMeta">✎ ${isAdded(n.id) ? 'Added' : 'Edited'}${EDITS[n.id].at ? ' · ' + esc(new Date(EDITS[n.id].at).toLocaleString()) : ''}</span>`;
+  h += `<span class="chip ${n.kind === 'api' ? 'api' : n.kind === 'transfer' ? 'esc' : ''}">${esc(KIND[n.kind] || n.kind)}${n.phi ? ' · PHI' : ''} · Flow ${n.flow}${n.step ? ' · ' + esc(n.step) : ''}</span>`;
+  h += `<h2 id="shTitle">${esc(n.title)}</h2>`;
+  if (false) h += `<span class="chip" style="background:${n.chg === 'new' ? 'var(--teal-soft, #DDF3F2)' : 'var(--gold-soft, #FFF4D1)'};color:var(--ink)">${n.chg === 'new' ? 'New in v8' : 'Updated in v8'}</span>`;
+  if (nd.type === 'xfer') h += `<div class="rule" style="background:var(--esc-fill)"><b style="color:var(--esc)">Why it transfers here:</b> ${nd.labels.map((l, i) => esc(l) + ' — reason code: ' + esc(nd.reasons[i])).join('<br>')}</div>`;
+  if (n.say) h += `<div class="say"><small>${n.say.trim().startsWith('“') ? esc(n.sayer || 'AI agent') + ' says' : 'What happens'}</small><q>${esc(n.say)}</q></div>`;
+  if (n.rule) h += `<div class="rule"><b>How it works.</b> ${esc(n.rule)}</div>`;
+  if (n.inferred) h += `<div class="inferred"><b>Inferred:</b> ${esc(n.inferred)}</div>`;
+  if (n.samples && n.samples.length) h += `<h3>Sample API call</h3><div class="api"><div class="bar" role="tablist">${n.samples.map((s, i) => `<button class="tabbtn" role="tab" aria-selected="${i === 0}" data-t="${i}">${esc(s.kind)}</button>`).join('')}<span class="sp"></span></div>
+      <div class="method" id="apiM">${esc(n.samples[0].method)}</div><pre id="apiB">${esc(n.samples[0].body)}</pre></div>`;
+  if (n.choices.length && nd.type !== 'xfer') h += `<h3>${esc(n.prompt || 'Next')}</h3><ul class="leads">` + n.choices.map(c => `<li class="${c.tone === 'esc' ? 'esc' : ''}"><span>${esc(c.label)}</span><span class="to">${c.to === 'transfer' ? 'Transfer to agent' : c.to === n.id ? 'asks again' : (N[c.to].flow !== n.flow ? 'Flow ' + N[c.to].flow + ': ' : '') + esc(N[c.to].title)}</span></li>`).join('') + `</ul>`;
+  const ckey = cKey(nd); if (ckey) h += `<div class="cm" id="cmNode"></div>`;
+  $('sheet').innerHTML = h; $('scrim').hidden = false; lastFocus = document.activeElement; $('shClose').focus();
+  $('shClose').onclick = close;
+  if (ckey) renderNodeComments(ckey, cTitle(nd));
+  if ($('shEdit')) $('shEdit').onclick = () => { setEditing(true); openEditor(nd.type === 'xfer' ? N[nd.src] : n); };
+  if (isEdited(n.id) && EDITS[n.id].by && users) users.profiles([EDITS[n.id].by]).then(ps => { const m = $('edMeta'); if (m && ps[EDITS[n.id].by]) m.textContent += ' by ' + (ps[EDITS[n.id].by].name || 'someone'); }).catch(() => {});
+  $('sheet').querySelectorAll('.tabbtn').forEach(b => b.onclick = () => { const s = n.samples[+b.dataset.t];
+    $('sheet').querySelectorAll('.tabbtn').forEach(x => x.setAttribute('aria-selected', x === b)); $('apiM').textContent = s.method; $('apiB').textContent = s.body; });
+}
+function targetOptions(n, sel) {
+  let o = `<option value="transfer"${sel === 'transfer' ? ' selected' : ''}>Transfer to agent</option><option value="${esc(n.id)}"${sel === n.id ? ' selected' : ''}>Asks again (this step)</option>`;
+  FL.forEach(f => { const ids = Object.keys(N).filter(k => N[k].flow === f.n && k !== n.id && k !== 'transfer');
+    if (!ids.length) return; o += `<optgroup label="Flow ${f.n} · ${esc(f.name)}">` + ids.map(k => `<option value="${esc(k)}"${sel === k ? ' selected' : ''}>${esc(N[k].title)}</option>`).join('') + `</optgroup>`; });
+  return o;
+}
+function openEditor(n0) {
+  if (!n0) return; const n = clone(n0); n.choices = n.choices || [];
+  const isBase = !!BASE[n.id], fld = (id, label, val, opts = {}) => `<div class="fld"><label for="${id}">${esc(label)}</label>${opts.area ? `<textarea id="${id}" rows="${opts.rows || 3}" class="${opts.mono ? 'mono' : ''}" spellcheck="${opts.mono ? 'false' : 'true'}">${esc(val ?? '')}</textarea>` : `<input id="${id}" value="${esc(val ?? '')}">`}${opts.hint ? `<span class="hint">${esc(opts.hint)}</span>` : ''}<span class="err" id="${id}-err"></span></div>`;
+  const draw = () => {
+    let h = `<div class="editbar"><span class="chip">Editing · Flow ${n.flow}${n.step ? ' · ' + esc(n.step) : ''}</span><span class="sp" style="flex:1"></span><button class="x" id="shClose">Close ✕</button></div>`;
+    h += `<h2 id="shTitle">${isAdded(n.id) ? 'New step' : 'Edit step'}</h2>`;
+    h += fld('f-title', 'Box title (shown on the chart)', n.title);
+    if (n.id !== 'transfer') h += `<div class="fld"><label for="f-kind">Box type</label><select id="f-kind">${EDIT_KINDS.map(k => `<option value="${k}"${n.kind === k ? ' selected' : ''}>${esc(KIND[k])}</option>`).join('')}</select></div>`;
+    h += fld('f-say', 'What the agent says / what happens', n.say, {area: true, rows: 3, hint: 'Put spoken wording in “quotes”.'});
+    h += fld('f-rule', 'How it works (rule)', n.rule, {area: true, rows: 4});
+    h += fld('f-prompt', 'Question above the answers', n.prompt);
+    h += `<h3>Answers and arrows</h3><div class="chgrid" id="chgrid">` + n.choices.map((c, i) => `<div class="chrow ${c.to === 'transfer' ? 'esc' : ''}">
+      <div class="rowbar">${fld('f-c' + i, 'Answer ' + (i + 1) + ' (arrow label)', c.label)}<button class="iconbtn" data-del="${i}" title="Remove this answer" aria-label="Remove answer ${i + 1}">✕</button></div>
+      <div class="fld"><label for="f-t${i}">Leads to</label><select id="f-t${i}" data-ti="${i}">${targetOptions(n, c.to)}</select></div>
+      ${c.to === 'transfer' ? fld('f-r' + i, 'Transfer reason (shown on the orange box)', c.reason) : ''}</div>`).join('') + `</div>
+      <div class="editbar"><button class="btn2" id="addChoice">+ Add answer</button><button class="btn2" id="addAfter">+ Add a new step after this</button></div>`;
+    if (n.kind === 'api') { if (!n.samples || !n.samples.length) n.samples = [{kind: 'Request', method: 'POST /api/v1/…', body: '{\n}'}, {kind: 'Response', method: '200 OK', body: '{\n}'}];
+      n.samples.forEach((sm, i) => { h += `<h3>Sample API ${esc(sm.kind.toLowerCase())}</h3>` + fld('f-m' + i, 'Method and endpoint', sm.method) + fld('f-b' + i, 'JSON body', sm.body, {area: true, mono: true, rows: Math.min(20, sm.body.split('\n').length + 1), hint: 'Must be valid JSON.'}); }); }
+    h += `<div class="editbar"><button class="btn2 primary" id="shSave">Save changes</button><button class="btn2" id="shCancel">Cancel</button><span class="sp" style="flex:1"></span>
+      ${isBase && isEdited(n.id) ? '<button class="btn2" id="shReset">Reset to original</button>' : ''}${n.id !== 'transfer' ? '<button class="btn2 danger" id="shDelete">Delete step</button>' : ''}</div>`;
+    h += `<p class="fine">${mode === 'shared' ? 'Saved changes are shared with everyone who can open this page.' : 'Changes are saved in this browser only.'}</p>`;
+    $('sheet').innerHTML = h; $('scrim').hidden = false;
+    $('shClose').onclick = $('shCancel').onclick = close;
+    $('sheet').querySelectorAll('[data-del]').forEach(b => b.onclick = () => { collect(); n.choices.splice(+b.dataset.del, 1); draw(); });
+    $('sheet').querySelectorAll('[data-ti]').forEach(s => s.onchange = () => { collect(); draw(); });
+    if ($('f-kind')) $('f-kind').onchange = () => { collect(); draw(); };
+    $('addChoice').onclick = () => { collect(); n.choices.push({label: 'New answer', to: 'transfer', tone: 'esc', reason: 'Escalation'}); draw(); $('f-c' + (n.choices.length - 1)).select(); };
+    $('addAfter').onclick = async () => { if (!collect()) return; const nid = 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      const step = {id: nid, flow: n.flow, step: n.step || '', kind: 'say', title: 'New step', say: '', rule: '', prompt: '', choices: [], sayer: 'AI agent'};
+      n.choices.push({label: 'Next', to: nid, tone: 'go'});
+      if (await saveNode(nid, step, null) && await saveNode(n.id, n, 'New step added')) { const nd = VIEW.nodes.find(x => x.id === nid); openEditor(N[nid]); if (nd) flash(nid); } };
+    $('shSave').onclick = async () => { if (!collect()) return; $('shSave').disabled = true; $('shSave').textContent = 'Saving…';
+      if (await saveNode(n.id, n, 'Saved')) close(); else { $('shSave').disabled = false; $('shSave').textContent = 'Save changes'; } };
+    if ($('shReset')) $('shReset').onclick = async () => { if (await writeEdit(n.id, null)) { toast('Reset to the original'); close(); } };
+    if ($('shDelete')) $('shDelete').onclick = async () => { const b = $('shDelete');
+      if (!b.dataset.armed) { const inc = Object.values(N).filter(m => m.id !== n.id && m.choices.some(c => c.to === n.id)).length;
+        b.dataset.armed = '1'; b.textContent = inc ? `Click again — ${inc} arrow${inc > 1 ? 's' : ''} into it will be removed` : 'Click again to delete'; return; }
+      if (await writeEdit(n.id, isBase ? {deleted: true} : null)) { toast('Step deleted — restore it from Changes'); close(); } };
+    $('f-title').focus();
+  };
+  const collect = () => { const v = id => $(id) ? $(id).value : undefined; let ok = true;
+    n.title = (v('f-title') || '').trim() || n.title; if ($('f-kind')) n.kind = v('f-kind');
+    ['say', 'rule', 'prompt'].forEach(k => { const x = v('f-' + k); if (x !== undefined) { if (x.trim() || n[k] !== undefined) n[k] = x; } });
+    n.choices.forEach((c, i) => { if ($('f-c' + i)) c.label = v('f-c' + i).trim() || c.label; if ($('f-t' + i)) c.to = v('f-t' + i);
+      c.tone = c.to === 'transfer' ? 'esc' : (c.tone === 'esc' ? 'go' : c.tone || 'go'); if (c.to === 'transfer') c.reason = v('f-r' + i) ?? c.reason ?? 'Escalation'; else delete c.reason; });
+    if (n.kind === 'api' && n.samples) n.samples.forEach((sm, i) => { if (!$('f-b' + i)) return; sm.method = v('f-m' + i); sm.body = v('f-b' + i);
+      try { JSON.parse(sm.body); $('f-b' + i + '-err').textContent = ''; } catch (er) { $('f-b' + i + '-err').textContent = 'Not valid JSON: ' + er.message; ok = false; } });
+    if (n.kind !== 'api') delete n.samples;
+    return ok; };
+  draw();
+}
+function showChanges() {
+  const ids = Object.keys(EDITS);
+  let h = `<div class="editbar"><span class="chip">Changes on this page</span><span class="sp" style="flex:1"></span><button class="x" id="shClose">Close ✕</button></div><h2 id="shTitle">${ids.length} change${ids.length === 1 ? '' : 's'}</h2>`;
+  h += ids.length ? `<ul class="chlist">` + ids.map(id => { const e = EDITS[id], t = e.deleted ? (BASE[id] || {}).title : (N[id] || {}).title, f = e.deleted ? (BASE[id] || {}).flow : (N[id] || {}).flow;
+      const what = e.deleted ? 'Deleted' : isAdded(id) ? 'Added' : 'Edited';
+      return `<li><span><b>${esc(t || id)}</b><small>${what} · Flow ${f || '?'}${e.at ? ' · ' + esc(new Date(e.at).toLocaleString()) : ''}</small></span><span style="display:flex;gap:6px">${!e.deleted ? `<button class="btn2" data-go="${esc(id)}">Show</button>` : ''}${canWrite ? `<button class="btn2" data-undo="${esc(id)}">${e.deleted ? 'Restore' : isAdded(id) ? 'Remove' : 'Reset'}</button>` : ''}</span></li>`; }).join('') + `</ul>`
+    : `<p class="fine">Nothing has been changed yet.</p>`;
+  const moved = Object.keys(POS).filter(f => Object.keys(POS[f] || {}).length);
+  if (moved.length) h += `<p class="fine">Boxes have been moved on Flow ${moved.join(', ')}. Use “Reset layout” on a flow to put them back.</p>`;
+  $('sheet').innerHTML = h; $('scrim').hidden = false; $('shClose').onclick = close;
+  $('sheet').querySelectorAll('[data-go]').forEach(b => b.onclick = () => { close(); goFlow(N[b.dataset.go].flow, b.dataset.go); });
+  $('sheet').querySelectorAll('[data-undo]').forEach(b => b.onclick = async () => { await writeEdit(b.dataset.undo, null); showChanges(); });
+}
+function close() { cmPanelOpen = false; $('scrim').hidden = true; if (lastFocus && lastFocus.focus) lastFocus.focus(); }
+$('scrim').addEventListener('click', e => { if (e.target === $('scrim')) close(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('scrim').hidden) close(); });
+
+// ======================================================================= saving
+async function saveNode(id, node, msg) { const n = clone(node); delete n.id; return writeEdit(id, {node: n}, msg); }
+async function writeEdit(id, e, msg) {
+  if (e) { e.at = new Date().toISOString(); if (me) e.by = me; }
+  if (mode === 'shared' && db) {
+    try { if (e) await db.collection('edits').doc(id).set(e); else await db.collection('edits').doc(id).delete(); }
+    catch (er) { failed(er); return false; }
+  }
+  if (e) EDITS[id] = e; else delete EDITS[id];
+  if (mode !== 'shared') { try { localStorage.setItem(LS, JSON.stringify(EDITS)); } catch (er) {} }
+  applyEdits(); render(); setStatus(); if (msg) toast(msg); return true;
+}
+async function savePos(f, p) {
+  if (mode === 'shared' && db) { try { if (Object.keys(p).length) await db.collection('layout').doc('flow' + f).set({pos: p}); else await db.collection('layout').doc('flow' + f).delete(); } catch (er) { failed(er); render(); return; } }
+  POS[f] = p; if (mode !== 'shared') { try { localStorage.setItem(LSP, JSON.stringify(POS)); } catch (er) {} }
+  render(); setStatus();
+}
+function failed(er) { if (er && er.code === 'invalid_argument') { canWrite = false; setEditing(false); setStatus(); }
+  toast(er && er.code === 'quota_exceeded' ? 'Storage is full — reset some changes first' : er && er.code === 'invalid_argument' ? 'You have view-only access, so changes can’t be saved' : 'Could not save: ' + ((er && er.message) || 'unknown error')); }
+let tt; function toast(t) { const m = $('toast'); m.textContent = t; m.hidden = false; clearTimeout(tt); tt = setTimeout(() => m.hidden = true, 2400); }
+function setStatus() {
+  const n = Object.keys(EDITS).length, moved = Object.keys((POS[flow] || {})).length;
+  $('status').innerHTML = (canWrite ? (editing ? '' : '<span>Turn on <b>Edit mode</b> to change wording, arrows, steps and API samples.</span>') : (cmMode === 'server' ? '<span>Click any box to read the step and leave a comment.</span>' : '<span>View-only: you can read the flows but not change them.</span>'))
+    + (cmMode === 'server' ? '' : `<span>${n ? `<b>${n}</b> change${n > 1 ? 's' : ''}` : 'No changes yet'}${moved ? ` · ${moved} box${moved > 1 ? 'es' : ''} moved on this flow` : ''} · ${mode === 'shared' ? 'changes are shared with everyone on this page' : 'changes are saved in this browser only'}</span>`);
+  $('modeBtn').disabled = !canWrite;
+}
+function setEditing(on) { editing = !!on && canWrite; document.body.classList.toggle('editing', editing);
+  $('modeBtn').setAttribute('aria-pressed', editing); $('modeTxt').textContent = editing ? 'Edit mode: on' : 'Edit mode: off';
+  $('editTools').hidden = !editing; render(); setStatus(); }
+$('modeBtn').onclick = () => setEditing(!editing);
+$('addStep').onclick = async () => { const nid = 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const step = {flow, step: '', kind: 'say', title: 'New step', say: '', rule: '', prompt: '', choices: [], sayer: 'AI agent'};
+  if (await saveNode(nid, step, 'Step added — connect it from another step’s answers')) { openEditor(N[nid]); flash(nid); } };
+$('changesBtn').onclick = showChanges;
+$('resetLayout').onclick = () => { if (!Object.keys(POS[flow] || {}).length) { toast('Nothing has been moved on this flow'); return; } savePos(flow, {}); toast('Layout reset for this flow'); };
+
+
+// ======================================================================= comments
+let CMTS = {}, cmMode = 'local', cmFilter = 'open', cmPanelOpen = false, myName = '';
+const LSC = 'qta-comments-v8', LSN = 'qta-comment-name';
+try { CMTS = JSON.parse(localStorage.getItem(LSC) || '{}') || {}; } catch (e) { CMTS = {}; }
+try { myName = localStorage.getItem(LSN) || ''; } catch (e) {}
+const CM_API = (document.querySelector('meta[name="comments-api"]') || {}).content || '';
+let CLIENT_ID = '';
+try { CLIENT_ID = localStorage.getItem('qta-client-id') || ''; if (!/^u[0-9a-z]{4,40}$/.test(CLIENT_ID)) { CLIENT_ID = 'u' + Array.from(crypto.getRandomValues(new Uint32Array(3))).map(n => n.toString(36)).join(''); localStorage.setItem('qta-client-id', CLIENT_ID); } } catch (e) { CLIENT_ID = 'u' + Date.now().toString(36); }
+if (CM_API) { cmMode = 'server'; CMTS = {}; }
+async function apiCall(method, pathPart, body) {
+  const r = await fetch(CM_API + pathPart, {method, credentials: 'same-origin', cache: 'no-store',
+    headers: Object.assign({'X-Client-Id': CLIENT_ID}, body ? {'Content-Type': 'application/json'} : {}), body: body ? JSON.stringify(body) : undefined});
+  if (r.status === 401) { location.href = '/login'; throw new Error('Your session ended. Sign in again.'); }
+  let data = null; try { data = await r.json(); } catch (e) {}
+  if (!r.ok) throw new Error((data && data.error) || 'The server could not save that. Try again.');
+  return data;
+}
+let cmLoading = false;
+async function loadComments() {
+  if (cmMode !== 'server' || cmLoading) return; cmLoading = true;
+  try { const rows = await apiCall('GET', '/comments'); const next = {}; (rows || []).forEach(c => { next[c.id] = c; }); CMTS = next; updateCount(); if (!drag) render();
+    if (!$('scrim').hidden && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('.cm-form'))) {
+      if (cmPanelOpen) openPanel(); else if ($('cmNode') && curNd) renderNodeComments(cKey(curNd), cTitle(curNd)); } }
+  catch (er) { /* keep the last list; the next poll retries */ }
+  finally { cmLoading = false; }
+}
+function cKey(nd) { if (!nd) return null; if (nd.type === 'xfer') return 'x:' + nd.src; if (nd.escEntry) return 'transfer'; return nd.n ? nd.n.id : null; }
+function cTitle(nd) { if (nd.type === 'xfer') return 'Transfer from “' + ((N[nd.src] || {}).title || 'a step') + '”'; const n = stepOf(nd); return n ? n.title : 'Step'; }
+function cFlowOf(key) { if (key === '_page') return 0; const id = key.startsWith('x:') ? key.slice(2) : key; return (N[id] || {}).flow || 0; }
+function list(filterFn) { return Object.entries(CMTS).map(([id, c]) => Object.assign({id}, c)).filter(filterFn).sort((a, b) => (a.at || '').localeCompare(b.at || '')); }
+function openCount(key) { return list(c => c.key === key && !c.resolved).length; }
+function fmtTime(t) { try { return new Date(t).toLocaleString([], {dateStyle: 'medium', timeStyle: 'short'}); } catch (e) { return ''; } }
+function updateCount() { const n = list(c => !c.resolved).length; $('cmCount').textContent = n; }
+function cardHtml(c, withStep) {
+  const mine = cmMode === 'server' ? !!c.mine : ((me && c.by === me) || (!c.by && cmMode === 'local'));
+  return `<div class="cm-card${c.resolved ? ' res' : ''}" data-cid="${esc(c.id)}">
+    ${withStep && c.key !== '_page' ? `<button class="cm-step" data-go="${esc(c.key)}">${esc(c.title || 'Step')} →</button>` : ''}
+    <div class="cm-meta"><b>${esc(c.name || 'Anonymous')}</b><span>${esc(fmtTime(c.at))}</span>${c.resolved ? '<span>· Resolved</span>' : ''}</div>
+    <div class="cm-text">${esc(c.text)}</div>
+    <div class="cm-acts"><button data-res="${esc(c.id)}">${c.resolved ? 'Reopen' : 'Resolve'}</button>${mine || (isAdmin && cmMode !== 'server') ? `<button class="del" data-del="${esc(c.id)}">Delete</button>` : ''}</div></div>`;
+}
+function formHtml(prefix) {
+  return `<div class="cm-form" id="${prefix}Form" hidden>
+    <label for="${prefix}Name">Your name</label><input id="${prefix}Name" maxlength="80" autocomplete="name" placeholder="Your name">
+    <label for="${prefix}Text">Comment</label><textarea id="${prefix}Text" maxlength="4000" placeholder="Write your comment"></textarea>
+    <div class="row"><button class="btn2" id="${prefix}Cancel">Cancel</button><button class="btn2 primary" id="${prefix}Post">Post comment</button></div></div>`;
+}
+function wireForm(prefix, key, title, rerender) {
+  const add = $(prefix + 'Add'), f = $(prefix + 'Form'); if (!add || !f) return;
+  add.onclick = () => { add.hidden = true; f.hidden = false; $(prefix + 'Name').value = myName; ($(prefix + 'Name').value ? $(prefix + 'Text') : $(prefix + 'Name')).focus(); };
+  $(prefix + 'Cancel').onclick = () => { f.hidden = true; add.hidden = false; $(prefix + 'Text').value = ''; };
+  $(prefix + 'Post').onclick = async () => {
+    const name = $(prefix + 'Name').value.trim(), text = $(prefix + 'Text').value.trim();
+    if (!name) { $(prefix + 'Name').focus(); toast('Add your name'); return; }
+    if (!text) { $(prefix + 'Text').focus(); toast('Write a comment first'); return; }
+    myName = name; try { localStorage.setItem(LSN, name); } catch (e) {}
+    const id = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    const c = {key, flow: cFlowOf(key), title, name, text, at: new Date().toISOString(), resolved: false}; if (me) c.by = me;
+    $(prefix + 'Post').disabled = true;
+    if (await writeComment(id, c)) { toast('Comment posted'); rerender(); } else $(prefix + 'Post').disabled = false;
+  };
+}
+function wireCards(root, rerender) {
+  root.querySelectorAll('[data-res]').forEach(b => b.onclick = async () => { const c = CMTS[b.dataset.res]; if (!c) return;
+    if (await writeComment(b.dataset.res, Object.assign({}, c, {resolved: !c.resolved}))) rerender(); });
+  root.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (!confirm('Delete this comment?')) return;
+    if (await writeComment(b.dataset.del, null)) { toast('Comment deleted'); rerender(); } });
+  root.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { const k = b.dataset.go; const id = k.startsWith('x:') ? k.slice(2) : k;
+    close(); cmPanelOpen = false; if (N[id]) goFlow(N[id].flow, id); });
+}
+function renderNodeComments(key, title) {
+  const box = $('cmNode'); if (!box) return;
+  const items = list(c => c.key === key);
+  box.innerHTML = `<div class="cm-head"><h3>Comments (${items.length})</h3></div>`
+    + (items.length ? items.map(c => cardHtml(c, false)).join('') : '<p class="cm-empty">No comments on this step yet.</p>')
+    + `<button class="cm-add" id="ndAdd">＋ Add comment</button>` + formHtml('nd') + cmNote();
+  wireForm('nd', key, title, () => renderNodeComments(key, title)); wireCards(box, () => renderNodeComments(key, title));
+}
+function cmNote() { return `<p class="cm-note">${cmMode === 'server' ? 'Comments are saved for everyone who signs in to this page.' : cmMode === 'shared' ? 'Comments are shared with everyone who opens this page.' : 'Comments are saved in this browser only. Publish and share the page to collect comments from others.'}</p>`; }
+function openPanel() {
+  cmPanelOpen = true;
+  const all = list(() => true), shown = all.filter(c => cmFilter === 'all' || (cmFilter === 'open' ? !c.resolved : c.resolved));
+  const groups = [[0, 'Whole page']].concat(FL.map(f => [f.n, `Flow ${f.n} · ${f.name}`]));
+  let h = `<div class="editbar"><h2 id="shTitle" style="font-size:24px">All comments</h2><span class="sp" style="flex:1"></span><button class="x" id="shClose">Close ✕</button></div>
+    <div class="cm-filter" role="group" aria-label="Show">${['open', 'resolved', 'all'].map(k => `<button data-f="${k}" aria-pressed="${cmFilter === k}">${k === 'open' ? 'Open' : k === 'resolved' ? 'Resolved' : 'All'} (${k === 'all' ? all.length : all.filter(c => k === 'open' ? !c.resolved : c.resolved).length})</button>`).join('')}</div>
+    <div class="cm" id="cmPage"><button class="cm-add" id="pgAdd">＋ Add a comment on the whole page</button>${formHtml('pg')}</div>`;
+  if (!shown.length) h += `<p class="cm-empty">${all.length ? 'Nothing here with this filter.' : 'No comments yet. Click any box on the chart, or use the button above, to add one.'}</p>`;
+  groups.forEach(([fn, label]) => { const g = shown.filter(c => (c.key === '_page' ? 0 : (c.flow || cFlowOf(c.key))) === fn); if (!g.length) return;
+    h += `<div class="cm-group"><h4>${esc(label)}</h4>${g.map(c => cardHtml(c, true)).join('')}</div>`; });
+  h += cmNote();
+  $('sheet').innerHTML = h; $('scrim').hidden = false; lastFocus = lastFocus || document.activeElement; $('shClose').focus();
+  $('shClose').onclick = () => { cmPanelOpen = false; close(); };
+  $('sheet').querySelectorAll('[data-f]').forEach(b => b.onclick = () => { cmFilter = b.dataset.f; openPanel(); });
+  wireForm('pg', '_page', 'Whole page', openPanel); wireCards($('sheet'), openPanel);
+}
+async function writeComment(id, c) {
+  if (cmMode === 'server') {
+    try {
+      if (!c) { await apiCall('DELETE', '/comments/' + encodeURIComponent(id)); delete CMTS[id]; }
+      else if (CMTS[id]) { CMTS[id] = await apiCall('PATCH', '/comments/' + encodeURIComponent(id), {resolved: !!c.resolved}); }
+      else { const saved = await apiCall('POST', '/comments', {id, key: c.key, flow: c.flow, title: c.title, name: c.name, text: c.text}); CMTS[saved.id] = saved; }
+    } catch (er) { toast(er.message || 'Could not save the comment'); return false; }
+    updateCount(); render(); return true;
+  }
+  if (cmMode === 'shared' && db) {
+    try { if (c) await db.collection('comments').doc(id).set(c); else await db.collection('comments').doc(id).delete(); }
+    catch (er) { toast(er && er.code === 'invalid_argument' ? 'Your access doesn’t allow adding comments — ask the owner for Contributor access' : 'Could not save the comment: ' + ((er && er.message) || 'unknown error')); return false; }
+  }
+  if (c) CMTS[id] = c; else delete CMTS[id];
+  if (cmMode !== 'shared') { try { localStorage.setItem(LSC, JSON.stringify(CMTS)); } catch (e) {} }
+  updateCount(); render(); return true;
+}
+let isAdmin = false;
+$('cmBtn').onclick = openPanel;
+
+// ======================================================================= tabs, zoom, start
+FL.forEach(f => { const b = document.createElement('button'); b.className = 'tab'; b.setAttribute('role', 'tab');
+  b.innerHTML = `<b>FLOW ${f.n} · ${esc(f.steps.toUpperCase())}</b><span>${esc(f.name)}</span>`; b.onclick = () => goFlow(f.n); $('tabs').appendChild(b); });
+const setZoom = z => { zoom = Math.max(.6, Math.min(1.6, Math.round(z * 10) / 10)); try { localStorage.setItem('qta-zoom', zoom); } catch (e) {} render(); };
+$('zi').onclick = () => setZoom(zoom + .1); $('zo').onclick = () => setZoom(zoom - .1); $('z0').onclick = () => setZoom(1);
+const hm = /^#flow([1-5])$/.exec(location.hash || ''); if (hm) flow = +hm[1];
+const start = () => { canWrite = true; isAdmin = true; updateCount(); render(); setStatus(); connect();
+  if (cmMode === 'server') { canWrite = false; isAdmin = false; setEditing(false); $('modeBtn').hidden = true; setStatus(); loadComments(); setInterval(loadComments, 15000); document.addEventListener('visibilitychange', () => { if (!document.hidden) loadComments(); }); } };
+async function connect() {
+  if (!window.claude || !window.claude.use) return;
+  try {
+    const [d, u] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+    users = u; if (!d) return;
+    if (u) { try { me = await u.id(); } catch (e) {} try { isAdmin = !!(u.canEdit && await u.canEdit()); } catch (e) {} canWrite = isAdmin; if (!canWrite) setEditing(false);
+      if (!myName) { try { const p = await u.me(); if (p && p.name) myName = p.name; } catch (e) {} } }
+    db = d; mode = 'shared'; EDITS = {}; POS = {}; applyEdits(); render(); setStatus();
+    db.collection('edits').onSnapshot(snap => { const next = {}; snap.docs.forEach(doc => { if (doc.exists) next[doc.id] = doc.data(); });
+      EDITS = next; applyEdits(); if (!drag) render(); setStatus(); }, err => toast('Live updates stopped (' + err.code + ')'));
+    cmMode = 'shared'; CMTS = {}; updateCount();
+    db.collection('comments').onSnapshot(snap => { const next = {}; snap.docs.forEach(doc => { if (doc.exists) next[doc.id] = doc.data(); });
+      CMTS = next; updateCount(); if (!drag) render(); if (!$('scrim').hidden) { if (cmPanelOpen) openPanel(); else if ($('cmNode') && curNd && !document.activeElement.closest('.cm-form')) renderNodeComments(cKey(curNd), cTitle(curNd)); } }, err => toast('Live comments stopped (' + err.code + ')'));
+    db.collection('layout').onSnapshot(snap => { const next = {}; snap.docs.forEach(doc => { const m = /^flow(\d)$/.exec(doc.id); if (doc.exists && m) next[m[1]] = (doc.data() || {}).pos || {}; });
+      POS = next; if (!drag) render(); setStatus(); }, err => toast('Live updates stopped (' + err.code + ')'));
+  } catch (e) {}
+}
+(document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(start, start);
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(render, 150); });
+const mq = matchMedia('(prefers-color-scheme: dark)'); mq.addEventListener && mq.addEventListener('change', render);
+new MutationObserver(render).observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
+})();
+</script>
+
+</body></html>
