@@ -115,6 +115,7 @@ async function main() {
       dbName: DB_NAME,
       collectionName: 'sessions',
       ttl: SESSION_HOURS * 60 * 60,
+      touchAfter: 10 * 60,
     }),
     cookie: {
       httpOnly: true,
@@ -133,7 +134,8 @@ async function main() {
   // ---------------------------------------------- login / logout
   const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: 10,
+    // Reviewers in one office share an IP address, so their wrong attempts add up together.
+    limit: 30,
     skipSuccessfulRequests: true,
     requestWasSuccessful: req => !req.loginFailed,
     standardHeaders: 'draft-7',
@@ -149,8 +151,10 @@ async function main() {
   app.post('/login', loginLimiter, async (req, res, next) => {
     try {
       const { username = '', password = '' } = req.body || {};
-      const userOk = safeEqual(String(username).trim(), APP_USERNAME);
-      const passOk = await passwordMatches(password);
+      // Phones capitalise the first letter and copy-paste adds spaces, so ignore case in the
+      // username and spaces around the password.
+      const userOk = safeEqual(String(username).trim().toLowerCase(), APP_USERNAME.toLowerCase());
+      const passOk = await passwordMatches(String(password).trim());
       if (!userOk || !passOk) {
         req.loginFailed = true;
         return res.redirect('/login?error=1');
@@ -252,6 +256,12 @@ async function main() {
   app.use((req, res) => res.status(404).send('Not found'));
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {
+    // express-session refreshes the stored session after the reply has gone out; if the session was
+    // removed in the meantime (signed out in another tab, or expired) there is nothing left to send.
+    if (res.headersSent) {
+      if (!/Unable to find the session to touch/.test(err && err.message)) console.error(err);
+      return;
+    }
     console.error(err);
     if (req.path.startsWith('/api/')) return res.status(500).json({ error: 'The server could not save that. Try again.' });
     res.status(500).send('Something went wrong. Try again.');

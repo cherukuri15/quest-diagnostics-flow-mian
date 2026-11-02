@@ -31,6 +31,15 @@ button{width:100%;appearance:none;border:0;border-radius:10px;background:var(--g
 button:hover{background:var(--deep)}
 button:focus-visible{outline:3px solid var(--lime);outline-offset:2px}
 .foot{margin:18px 0 0;font-size:14px;color:var(--muted)}
+.pw{position:relative}
+.pw input{padding-right:52px}
+.pw input::-ms-reveal,.pw input::-ms-clear{display:none}
+.pw .show{position:absolute;right:6px;top:6px;width:38px;height:36px;margin:0;padding:0;display:grid;place-items:center;background:none;color:var(--muted);border-radius:8px}
+.pw .show:hover{background:var(--soft);color:var(--green)}
+.pw .show svg{width:20px;height:20px}
+.pw .show .off{display:none}
+.pw .show[aria-pressed="true"] .on{display:none}
+.pw .show[aria-pressed="true"] .off{display:block}
 </style>
 </head>
 <body>
@@ -42,14 +51,32 @@ button:focus-visible{outline:3px solid var(--lime);outline-offset:2px}
     <p class="lede">Sign in with the username and password you were given to review the flows and leave comments.</p>
     <p class="err" id="err" role="alert" hidden></p>
     <label for="username">Username</label>
-    <input id="username" name="username" autocomplete="username" required autofocus>
+    <input id="username" name="username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required autofocus>
     <label for="password">Password</label>
-    <input id="password" name="password" type="password" autocomplete="current-password" required>
+    <div class="pw">
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+      <button type="button" class="show" id="showPw" aria-controls="password" aria-pressed="false" aria-label="Show password" title="Show password">
+        <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.6 5.1A10.7 10.7 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-2.6 3.6M6.6 6.6C3.7 8.4 2 12 2 12s3.5 7 10 7c1.9 0 3.6-.6 5-1.5"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M2 2l20 20"/></svg>
+      </button>
+    </div>
     <button type="submit">Sign in</button>
     <p class="foot">Don’t have the login? Ask the person who shared this link.</p>
   </form>
 </main>
 <script>
+(function () {
+  var pw = document.getElementById('password'), sb = document.getElementById('showPw');
+  sb.addEventListener('click', function () {
+    var show = pw.type === 'password';
+    pw.type = show ? 'text' : 'password';
+    var label = show ? 'Hide password' : 'Show password';
+    sb.setAttribute('aria-label', label);
+    sb.title = label;
+    sb.setAttribute('aria-pressed', show);
+    pw.focus();
+  });
+})();
 (function () {
   var e = new URLSearchParams(location.search).get('error'), box = document.getElementById('err');
   if (!e) return;
